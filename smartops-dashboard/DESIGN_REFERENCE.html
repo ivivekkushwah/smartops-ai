@@ -1,0 +1,947 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Syne:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --bg0: #050810;
+    --bg1: #080d1a;
+    --bg2: #0c1225;
+    --bg3: #101830;
+    --bg4: #151f3a;
+    --surface: rgba(16,24,48,0.8);
+    --surface2: rgba(20,30,60,0.6);
+    --border: rgba(80,140,255,0.12);
+    --border2: rgba(80,140,255,0.22);
+    --blue: #3b82f6;
+    --blue2: #60a5fa;
+    --cyan: #06b6d4;
+    --cyan2: #22d3ee;
+    --green: #10b981;
+    --green2: #34d399;
+    --amber: #f59e0b;
+    --amber2: #fbbf24;
+    --red: #ef4444;
+    --red2: #f87171;
+    --purple: #8b5cf6;
+    --purple2: #a78bfa;
+    --pink: #ec4899;
+    --text1: #e8f0fe;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  #app {
+    font-family: var(--sans);
+    background: var(--bg0);
+    color: var(--text1);
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 12px;
+  }
+
+  /* NAVBAR */
+  .navbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 16px; height: 52px;
+    background: rgba(8,13,26,0.95);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    position: relative; z-index: 10;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 15px; font-weight: 700; letter-spacing: -0.5px;
+    white-space: nowrap;
+  }
+  .logo-icon {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .logo-text { color: var(--text1); }
+  .logo-accent { color: var(--blue2); }
+  .search-bar {
+    flex: 1; max-width: 240px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 10px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text3);
+  }
+  .search-bar input {
+    background: transparent; border: none; outline: none;
+    color: var(--text2); font-family: var(--sans); font-size: 12px;
+    width: 100%;
+  }
+  .nav-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .nav-btn {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 14px; position: relative;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover { background: rgba(255,255,255,0.08); border-color: var(--border2); }
+  .notif-dot {
+    position: absolute; top: 4px; right: 4px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--red); border: 1.5px solid var(--bg1);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.7;transform:scale(1.2)} }
+  .conn-status {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; color: var(--green2);
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.2);
+    border-radius: 20px; padding: 3px 10px;
+  }
+  .conn-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 1.5s infinite; }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; cursor: pointer;
+  }
+
+  /* LAYOUT */
+  .layout { display: flex; flex: 1; overflow: hidden; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 180px; flex-shrink: 0;
+    background: rgba(8,13,26,0.9);
+    border-right: 1px solid var(--border);
+    padding: 12px 8px;
+    display: flex; flex-direction: column; gap: 2px;
+    overflow-y: auto;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: 8px;
+    font-size: 12px; font-weight: 500; color: var(--text2);
+    cursor: pointer; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text1); }
+  .nav-item.active { background: rgba(59,130,246,0.15); color: var(--blue2); border: 1px solid rgba(59,130,246,0.2); }
+  .nav-icon { font-size: 15px; width: 18px; text-align: center; }
+  .sidebar-section { font-size: 10px; color: var(--text3); padding: 8px 10px 4px; letter-spacing: 0.8px; text-transform: uppercase; }
+
+  /* MAIN */
+  .main { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+  .main::-webkit-scrollbar { width: 4px; }
+  .main::-webkit-scrollbar-track { background: transparent; }
+  .main::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* SECTION HEADER */
+  .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .section-title { font-size: 13px; font-weight: 600; color: var(--text1); }
+  .section-badge {
+    font-size: 10px; padding: 2px 7px; border-radius: 20px;
+    background: rgba(59,130,246,0.15); color: var(--blue2);
+    border: 1px solid rgba(59,130,246,0.25); font-family: var(--mono);
+  }
+  .section-line { flex: 1; height: 1px; background: var(--border); }
+
+  /* METRIC CARDS */
+  .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 14px;
+    position: relative; overflow: hidden;
+    cursor: pointer; transition: all 0.3s;
+  }
+  .metric-card:hover { border-color: var(--border2); transform: translateY(-1px); }
+  .metric-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .metric-card.blue::before { background: linear-gradient(90deg, transparent, var(--blue), transparent); }
+  .metric-card.green::before { background: linear-gradient(90deg, transparent, var(--green), transparent); }
+  .metric-card.red::before { background: linear-gradient(90deg, transparent, var(--red), transparent); }
+  .metric-card.amber::before { background: linear-gradient(90deg, transparent, var(--amber), transparent); }
+  .metric-card.cyan::before { background: linear-gradient(90deg, transparent, var(--cyan), transparent); }
+  .metric-card.purple::before { background: linear-gradient(90deg, transparent, var(--purple), transparent); }
+  .metric-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+  .metric-icon {
+    width: 34px; height: 34px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+  }
+  .metric-icon.blue { background: rgba(59,130,246,0.15); }
+  .metric-icon.green { background: rgba(16,185,129,0.15); }
+  .metric-icon.red { background: rgba(239,68,68,0.15); }
+  .metric-icon.amber { background: rgba(245,158,11,0.15); }
+  .metric-icon.cyan { background: rgba(6,182,212,0.15); }
+  .metric-icon.purple { background: rgba(139,92,246,0.15); }
+  .metric-trend { font-size: 10px; font-family: var(--mono); }
+  .trend-up { color: var(--green2); }
+  .trend-down { color: var(--red2); }
+  .metric-val { font-size: 22px; font-weight: 700; letter-spacing: -1px; margin-bottom: 2px; }
+  .metric-label { font-size: 10px; color: var(--text3); letter-spacing: 0.3px; }
+  .mini-bars { display: flex; align-items: flex-end; gap: 2px; height: 24px; margin-top: 8px; }
+  .mini-bar { flex: 1; border-radius: 2px; opacity: 0.7; transition: height 0.5s; }
+
+  /* PANELS */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden;
+  }
+  .panel-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.02);
+  }
+  .panel-title { font-size: 12px; font-weight: 600; flex: 1; }
+  .panel-body { padding: 12px 14px; }
+
+  /* LOG STREAM */
+  .log-stream {
+    height: 220px; overflow-y: auto;
+    font-family: var(--mono); font-size: 10.5px;
+    line-height: 1.7; padding: 10px;
+    background: rgba(0,0,0,0.3);
+  }
+  .log-stream::-webkit-scrollbar { width: 3px; }
+  .log-stream::-webkit-scrollbar-thumb { background: var(--border2); }
+  .log-entry { display: flex; gap: 8px; padding: 1.5px 0; }
+  .log-time { color: var(--text3); white-space: nowrap; }
+  .log-svc { min-width: 120px; white-space: nowrap; }
+  .log-lvl { min-width: 46px; font-weight: 600; text-align: center; border-radius: 3px; padding: 0 4px; }
+  .lvl-INFO { color: var(--blue2); background: rgba(59,130,246,0.1); }
+  .lvl-WARN { color: var(--amber2); background: rgba(245,158,11,0.1); }
+  .lvl-ERROR { color: var(--red2); background: rgba(239,68,68,0.1); }
+  .lvl-DEBUG { color: var(--text3); background: rgba(100,116,139,0.1); }
+  .log-msg { color: var(--text2); flex: 1; }
+  .log-controls { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-top: 1px solid var(--border); }
+  .log-search { flex: 1; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 11px; color: var(--text2); font-family: var(--sans); outline: none; }
+  .btn-sm {
+    font-size: 10px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);
+    background: rgba(255,255,255,0.05); color: var(--text2); cursor: pointer; font-family: var(--sans);
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .btn-sm:hover { background: rgba(255,255,255,0.1); color: var(--text1); }
+  .btn-sm.active { background: rgba(59,130,246,0.2); color: var(--blue2); border-color: rgba(59,130,246,0.3); }
+
+  /* TWO COLUMN */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  /* SERVICE CARDS */
+  .svc-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 12px;
+    transition: all 0.2s;
+  }
+  .svc-card:hover { border-color: var(--border2); }
+  .svc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .svc-pulse {
+    width: 8px; height: 8px; border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+  .svc-pulse.online { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .svc-pulse.offline { background: var(--red); box-shadow: 0 0 6px var(--red); animation: none; }
+  .svc-name { font-size: 11px; font-weight: 600; flex: 1; color: var(--text1); }
+  .svc-badge { font-size: 9px; padding: 2px 6px; border-radius: 4px; font-family: var(--mono); }
+  .badge-online { background: rgba(16,185,129,0.15); color: var(--green2); }
+  .badge-offline { background: rgba(239,68,68,0.15); color: var(--red2); }
+  .svc-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .svc-metric { font-size: 10px; color: var(--text3); }
+  .svc-metric-val { font-size: 11px; font-weight: 600; font-family: var(--mono); color: var(--text2); }
+  .progress-bar { height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; margin-top: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+
+  /* AI INSIGHTS */
+  .ai-card {
+    background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(59,130,246,0.05));
+    border: 1px solid rgba(139,92,246,0.2);
+    border-radius: 10px; padding: 10px 12px;
+    position: relative; overflow: hidden;
+    transition: all 0.2s;
+  }
+  .ai-card:hover { border-color: rgba(139,92,246,0.4); }
+  .ai-card::after {
+    content: ''; position: absolute; top: -20px; right: -20px;
+    width: 60px; height: 60px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(139,92,246,0.15), transparent);
+    pointer-events: none;
+  }
+  .ai-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .ai-icon { font-size: 14px; }
+  .ai-title { font-size: 11px; font-weight: 600; color: var(--purple2); }
+  .ai-severity { font-size: 9px; padding: 2px 6px; border-radius: 4px; margin-left: auto; font-family: var(--mono); }
+  .sev-critical { background: rgba(239,68,68,0.2); color: var(--red2); }
+  .sev-warning { background: rgba(245,158,11,0.2); color: var(--amber2); }
+  .sev-info { background: rgba(6,182,212,0.2); color: var(--cyan2); }
+  .ai-body { font-size: 10.5px; color: var(--text2); line-height: 1.5; }
+  .ai-time { font-size: 9px; color: var(--text3); margin-top: 6px; font-family: var(--mono); }
+
+  /* ALERT CARDS */
+  .alert-card {
+    border-radius: 8px; padding: 9px 12px;
+    display: flex; align-items: flex-start; gap: 10px;
+    border: 1px solid;
+  }
+  .alert-card.critical { background: rgba(239,68,68,0.07); border-color: rgba(239,68,68,0.2); }
+  .alert-card.warning { background: rgba(245,158,11,0.07); border-color: rgba(245,158,11,0.2); }
+  .alert-card.resolved { background: rgba(16,185,129,0.07); border-color: rgba(16,185,129,0.2); }
+  .alert-icon { font-size: 14px; margin-top: 1px; }
+  .alert-info { flex: 1; min-width: 0; }
+  .alert-title { font-size: 11px; font-weight: 600; margin-bottom: 2px; }
+  .alert-desc { font-size: 10px; color: var(--text2); }
+  .alert-meta { display: flex; gap: 6px; margin-top: 4px; align-items: center; flex-wrap: wrap; }
+  .alert-svc { font-size: 9px; font-family: var(--mono); color: var(--text3); }
+  .alert-time { font-size: 9px; color: var(--text3); font-family: var(--mono); }
+  .alert-action { font-size: 9px; padding: 2px 7px; border-radius: 4px; border: 1px solid; cursor: pointer; background: transparent; transition: all 0.15s; }
+  .alert-action.critical { border-color: rgba(239,68,68,0.3); color: var(--red2); }
+  .alert-action.critical:hover { background: rgba(239,68,68,0.15); }
+  .alert-action.warning { border-color: rgba(245,158,11,0.3); color: var(--amber2); }
+  .alert-action.resolved { border-color: rgba(16,185,129,0.3); color: var(--green2); }
+
+  /* ARCH DIAGRAM */
+  .arch-flow { display: flex; flex-direction: column; align-items: center; gap: 0; padding: 8px; }
+  .arch-node {
+    padding: 7px 18px; border-radius: 8px; font-size: 10px; font-weight: 600;
+    font-family: var(--mono); border: 1px solid; text-align: center; position: relative;
+    transition: all 0.2s; cursor: default; white-space: nowrap;
+  }
+  .arch-node:hover { transform: scale(1.03); }
+  .arch-node.auth { background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.3); color: var(--blue2); }
+  .arch-node.kafka { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.3); color: var(--amber2); }
+  .arch-node.monitor { background: rgba(139,92,246,0.12); border-color: rgba(139,92,246,0.3); color: var(--purple2); }
+  .arch-node.mongo { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.3); color: var(--green2); }
+  .arch-node.ws { background: rgba(6,182,212,0.12); border-color: rgba(6,182,212,0.3); color: var(--cyan2); }
+  .arch-node.frontend { background: rgba(236,72,153,0.12); border-color: rgba(236,72,153,0.3); color: #f9a8d4; }
+  .arch-connector { display: flex; flex-direction: column; align-items: center; margin: 0; }
+  .arch-line { width: 1px; height: 14px; position: relative; overflow: visible; }
+  .arch-arrow { font-size: 10px; color: var(--text3); margin: 0; }
+  .arch-label { font-size: 8px; color: var(--text3); font-family: var(--mono); margin: 0 0 0 8px; position: absolute; left: 6px; top: 2px; white-space: nowrap; }
+
+  /* CHARTS */
+  .chart-wrap { position: relative; height: 140px; }
+
+  /* TABS */
+  .tab-bar { display: flex; gap: 2px; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 8px; }
+  .tab { font-size: 10px; padding: 4px 10px; border-radius: 6px; cursor: pointer; color: var(--text3); transition: all 0.15s; }
+  .tab.active { background: rgba(59,130,246,0.2); color: var(--blue2); }
+
+  /* SCROLLBARS */
+  .sidebar::-webkit-scrollbar { width: 3px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* ANIMATIONS */
+  @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes glow { 0%,100%{opacity:0.5} 50%{opacity:1} }
+  @keyframes flow { 0%{stroke-dashoffset:20} 100%{stroke-dashoffset:0} }
+  .animated { animation: fadeIn 0.4s ease forwards; }
+
+  /* TIMELINE */
+  .timeline { display: flex; flex-direction: column; gap: 0; position: relative; }
+  .tl-item { display: flex; gap: 10px; padding: 6px 0; position: relative; }
+  .tl-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 3px; flex-shrink: 0; }
+  .tl-line { position: absolute; left: 3.5px; top: 14px; bottom: -6px; width: 1px; background: var(--border); }
+  .tl-content { flex: 1; }
+  .tl-title { font-size: 10.5px; font-weight: 500; }
+  .tl-time { font-size: 9px; color: var(--text3); font-family: var(--mono); }
+
+  .spark { display: flex; align-items: flex-end; gap: 1px; height: 20px; }
+  .spark-bar { width: 3px; border-radius: 1px; }
+
+  .badge { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-family: var(--mono); font-weight: 500; }
+
+</style>
+
+<div id="app">
+  <h2 class="sr-only">SmartOps AI — Enterprise Distributed Monitoring Dashboard with real-time log streaming, service health, AI insights, and alerts</h2>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <span class="logo-text">Smart<span class="logo-accent">Ops</span> AI</span>
+    </div>
+    <div class="search-bar">
+      <i class="ti ti-search" aria-hidden="true" style="font-size:12px"></i>
+      <input placeholder="Search services, logs, metrics..." />
+    </div>
+    <div class="nav-right">
+      <div class="conn-status"><div class="conn-dot"></div> Live</div>
+      <div class="nav-btn" title="Notifications">
+        <i class="ti ti-bell" aria-hidden="true"></i>
+        <div class="notif-dot"></div>
+      </div>
+      <div class="nav-btn" title="Settings"><i class="ti ti-settings" aria-hidden="true"></i></div>
+      <div class="avatar" title="User profile">OP</div>
+    </div>
+  </nav>
+
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <nav class="sidebar" aria-label="Main navigation">
+      <div class="sidebar-section">Main</div>
+      <div class="nav-item active" onclick="setPage('dashboard')"><span class="nav-icon">📊</span> Dashboard</div>
+      <div class="nav-item" onclick="setPage('logs')"><span class="nav-icon">📋</span> Live Logs</div>
+      <div class="nav-item" onclick="setPage('services')"><span class="nav-icon">🔧</span> Services</div>
+      <div class="nav-item" onclick="setPage('alerts')"><span class="nav-icon">🚨</span> Alerts</div>
+      <div class="sidebar-section">Analysis</div>
+      <div class="nav-item" onclick="setPage('analytics')"><span class="nav-icon">📈</span> Analytics</div>
+      <div class="nav-item" onclick="setPage('ai')"><span class="nav-icon">🤖</span> AI Insights</div>
+      <div class="sidebar-section">System</div>
+      <div class="nav-item" onclick="setPage('settings')"><span class="nav-icon">⚙️</span> Settings</div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="main" id="main-content"></main>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const SERVICES = [
+  { name: 'AUTH-SERVICE', status: 'online', rt: 42, cpu: 34, mem: 61, uptime: '99.97%', port: 8081 },
+  { name: 'MONITORING-SVC', status: 'online', rt: 18, cpu: 56, mem: 74, uptime: '99.99%', port: 8082 },
+  { name: 'API-GATEWAY', status: 'online', rt: 7, cpu: 22, mem: 45, uptime: '100%', port: 8080 },
+  { name: 'SERVICE-REGISTRY', status: 'online', rt: 3, cpu: 8, mem: 29, uptime: '99.95%', port: 8761 },
+];
+
+const LOG_SVCS = ['AUTH-SERVICE','MONITORING-SVC','API-GATEWAY','SERVICE-REGISTRY','KAFKA-BROKER'];
+const LOG_LEVELS = ['INFO','INFO','INFO','WARN','ERROR','DEBUG'];
+const LOG_MSGS = {
+  INFO: ['Request processed successfully','JWT token validated','Service heartbeat OK','Connection pool healthy','Cache hit ratio 94%','Metrics pushed to collector','Health check passed'],
+  WARN: ['Response time exceeded threshold 500ms','Memory usage at 78%','Retry attempt 2 of 3','Connection pool near limit','Rate limit approaching'],
+  ERROR: ['NullPointerException in AuthFilter.java:142','Database connection timeout after 30s','Service unavailable: downstream failure','JWT signature verification failed'],
+  DEBUG: ['Entering method validateToken()','Cache lookup for key user:1042','DB query executed in 3ms']
+};
+
+let logs = [];
+let logPaused = false;
+let currentPage = 'dashboard';
+let charts = {};
+let metrics = { totalLogs: 182473, activeServices: 4, errors: 127, warnings: 342, kafkaEps: 8427, health: 97.3 };
+let timeLabels = [];
+let logsPerMin = [];
+let kafkaData = [];
+let tick = 0;
+
+function randInt(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+function randFloat(a, b, d=1) { return parseFloat((Math.random() * (b - a) + a).toFixed(d)); }
+function timeNow() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+}
+
+function genLog() {
+  const svc = LOG_SVCS[randInt(0, LOG_SVCS.length - 1)];
+  const lvl = LOG_LEVELS[randInt(0, LOG_LEVELS.length - 1)];
+  const msgs = LOG_MSGS[lvl];
+  const msg = msgs[randInt(0, msgs.length - 1)];
+  return { time: timeNow(), svc, lvl, msg };
+}
+
+function initLogs() {
+  for (let i = 0; i < 30; i++) logs.push(genLog());
+  const now = new Date();
+  for (let i = 29; i >= 0; i--) {
+    const t = new Date(now - i * 2000);
+    timeLabels.push(`${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`);
+    logsPerMin.push(randInt(40, 120));
+    kafkaData.push(randInt(6000, 12000));
+  }
+}
+
+function setPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const items = document.querySelectorAll('.nav-item');
+  const pages = ['dashboard','logs','services','alerts','analytics','ai','settings'];
+  const idx = pages.indexOf(page);
+  if (items[idx + 1]) items[idx + 1].classList.add('active');
+  else if (items[0] && page === 'dashboard') items[0].classList.add('active');
+  renderPage();
+}
+
+function getMetricBars(color, n=8) {
+  const vals = Array.from({length:n}, () => randInt(20, 90));
+  return vals.map(v => `<div class="mini-bar" style="height:${v}%;background:${color}"></div>`).join('');
+}
+
+function renderMetricCards() {
+  const cards = [
+    { label: 'Total Logs', val: (metrics.totalLogs / 1000).toFixed(1) + 'K', icon: '📄', color: 'blue', trend: '+2.4%', up: true, barColor: 'var(--blue)' },
+    { label: 'Active Services', val: metrics.activeServices, icon: '🔧', color: 'green', trend: 'Stable', up: true, barColor: 'var(--green)' },
+    { label: 'Error Count', val: metrics.errors, icon: '❌', color: 'red', trend: '-12%', up: true, barColor: 'var(--red)' },
+    { label: 'Warning Count', val: metrics.warnings, icon: '⚠️', color: 'amber', trend: '+3', up: false, barColor: 'var(--amber)' },
+    { label: 'Kafka Events/s', val: (metrics.kafkaEps / 1000).toFixed(1) + 'K', icon: '⚡', color: 'cyan', trend: '+8.1%', up: true, barColor: 'var(--cyan)' },
+    { label: 'System Health', val: metrics.health + '%', icon: '💚', color: 'purple', trend: '+0.1%', up: true, barColor: 'var(--purple)' },
+  ];
+  return `<div class="metric-grid">${cards.map(c => `
+    <div class="metric-card ${c.color} animated">
+      <div class="metric-top">
+        <div class="metric-icon ${c.color}">${c.icon}</div>
+        <span class="metric-trend ${c.up ? 'trend-up' : 'trend-down'}">${c.up ? '▲' : '▼'} ${c.trend}</span>
+      </div>
+      <div class="metric-val" style="color:var(--${c.color}2 ?? var(--${c.color}))">${c.val}</div>
+      <div class="metric-label">${c.label}</div>
+      <div class="mini-bars">${getMetricBars(c.barColor)}</div>
+    </div>`).join('')}</div>`;
+}
+
+function renderLogEntry(log) {
+  return `<div class="log-entry">
+    <span class="log-time">${log.time}</span>
+    <span class="log-svc" style="color:var(--text3);font-size:9.5px">${log.svc.padEnd(16)}</span>
+    <span class="log-lvl lvl-${log.lvl}">${log.lvl}</span>
+    <span class="log-msg">${log.msg}</span>
+  </div>`;
+}
+
+function renderLogPanel() {
+  return `<div class="panel">
+    <div class="panel-header">
+      <span style="font-size:13px">📋</span>
+      <span class="panel-title">Live Log Stream</span>
+      <span class="badge" style="background:rgba(16,185,129,0.12);color:var(--green2)">● LIVE</span>
+    </div>
+    <div class="log-stream" id="log-stream">${logs.slice(-50).map(renderLogEntry).join('')}</div>
+    <div class="log-controls">
+      <input class="log-search" placeholder="Filter logs…" oninput="filterLogs(this.value)" />
+      <button class="btn-sm" id="pause-btn" onclick="togglePause()">${logPaused ? '▶ Resume' : '⏸ Pause'}</button>
+      <button class="btn-sm" onclick="clearLogs()">🗑 Clear</button>
+      <span style="font-size:9px;color:var(--text3);font-family:var(--mono)">${logs.length} entries</span>
+    </div>
+  </div>`;
+}
+
+function filterLogs(q) {
+  const el = document.getElementById('log-stream');
+  if (!el) return;
+  const filtered = q ? logs.filter(l => l.msg.toLowerCase().includes(q.toLowerCase()) || l.svc.toLowerCase().includes(q.toLowerCase()) || l.lvl.toLowerCase().includes(q.toLowerCase())) : logs.slice(-50);
+  el.innerHTML = filtered.map(renderLogEntry).join('');
+}
+
+function togglePause() {
+  logPaused = !logPaused;
+  const btn = document.getElementById('pause-btn');
+  if (btn) btn.textContent = logPaused ? '▶ Resume' : '⏸ Pause';
+}
+
+function clearLogs() { logs = []; updateLogStream(); }
+
+function renderServices() {
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${SERVICES.map(s => {
+    const cpuColor = s.cpu > 70 ? 'var(--red)' : s.cpu > 50 ? 'var(--amber)' : 'var(--green)';
+    const memColor = s.mem > 80 ? 'var(--red)' : s.mem > 60 ? 'var(--amber)' : 'var(--cyan)';
+    return `<div class="svc-card animated">
+      <div class="svc-header">
+        <div class="svc-pulse ${s.status}"></div>
+        <span class="svc-name">${s.name}</span>
+        <span class="svc-badge badge-${s.status}">${s.status.toUpperCase()}</span>
+      </div>
+      <div class="svc-metrics">
+        <div class="svc-metric">Response Time<div class="svc-metric-val" style="color:var(--blue2)">${s.rt}ms</div></div>
+        <div class="svc-metric">Uptime<div class="svc-metric-val" style="color:var(--green2)">${s.uptime}</div></div>
+        <div class="svc-metric">CPU
+          <div class="svc-metric-val" style="color:${cpuColor}">${s.cpu}%</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${s.cpu}%;background:${cpuColor}"></div></div>
+        </div>
+        <div class="svc-metric">Memory
+          <div class="svc-metric-val" style="color:${memColor}">${s.mem}%</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${s.mem}%;background:${memColor}"></div></div>
+        </div>
+      </div>
+      <div style="margin-top:6px;display:flex;gap:4px;align-items:center">
+        <span style="font-size:9px;color:var(--text3);font-family:var(--mono)">Port :${s.port}</span>
+        <div style="flex:1"></div>
+        <div class="spark">${Array.from({length:8},()=>`<div class="spark-bar" style="height:${randInt(30,90)}%;background:var(--blue);opacity:0.6"></div>`).join('')}</div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function renderAIInsights() {
+  const insights = [
+    { icon: '🔴', title: 'Anomaly Detected', sev: 'critical', body: 'AUTH-SERVICE showing 340% spike in failed JWT validations. Pattern matches credential stuffing attack vector. 142 IPs blocked automatically.', time: '2 min ago' },
+    { icon: '⚠️', title: 'Predicted Failure', sev: 'warning', body: 'MONITORING-SVC heap memory projected to reach 95% in ~18 minutes based on current growth rate. GC pause frequency increasing.', time: '5 min ago' },
+    { icon: '🔵', title: 'Unusual Traffic Spike', sev: 'info', body: 'API-GATEWAY receiving 3.2x normal throughput from APAC region. Kafka consumer lag increased to 42K messages. Auto-scaling triggered.', time: '11 min ago' },
+    { icon: '🟣', title: 'ML Model Insight', sev: 'info', body: 'Recommendation: Increase API-GATEWAY connection pool from 200 to 350. Historical data shows 87% probability of timeout cascades during peak hours.', time: '18 min ago' },
+    { icon: '🔴', title: 'Suspicious Activity', sev: 'critical', body: 'SERVICE-REGISTRY receiving repeated deregistration attempts for PAYMENT-SERVICE. Potential rogue client or misconfigured health probe detected.', time: '24 min ago' },
+    { icon: '⚠️', title: 'Resource Contention', sev: 'warning', body: 'Thread pool exhaustion warning in MONITORING-SVC. 94% utilization detected. Consider async processing for log ingestion pipeline.', time: '31 min ago' },
+  ];
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${insights.map(i => `
+    <div class="ai-card animated">
+      <div class="ai-header">
+        <span class="ai-icon">${i.icon}</span>
+        <span class="ai-title">${i.title}</span>
+        <span class="ai-severity sev-${i.sev}">${i.sev.toUpperCase()}</span>
+      </div>
+      <div class="ai-body">${i.body}</div>
+      <div class="ai-time">⏱ ${i.time}</div>
+    </div>`).join('')}</div>`;
+}
+
+function renderAlerts() {
+  const alerts = [
+    { type: 'critical', icon: '🚨', title: 'High Error Rate — AUTH-SERVICE', desc: 'Error rate exceeded 5% threshold. 127 errors in last 60s.', svc: 'AUTH-SERVICE', time: '00:03:12 ago', action: 'Investigate' },
+    { type: 'critical', icon: '🔥', title: 'Memory Critical — MONITORING-SVC', desc: 'Heap usage at 89%. OOM imminent if trend continues.', svc: 'MONITORING-SVC', time: '00:07:45 ago', action: 'Scale Up' },
+    { type: 'warning', icon: '⚠️', title: 'Slow Response — API-GATEWAY', desc: 'P99 latency at 1240ms, exceeding 800ms SLA threshold.', svc: 'API-GATEWAY', time: '00:12:00 ago', action: 'Inspect' },
+    { type: 'warning', icon: '📉', title: 'Kafka Lag Increasing', desc: 'Consumer group lag reached 42,000 messages and growing.', svc: 'KAFKA-BROKER', time: '00:15:22 ago', action: 'Check' },
+    { type: 'resolved', icon: '✅', title: 'Database Timeout Resolved', desc: 'Connection pool restored. Service back to normal operation.', svc: 'AUTH-SERVICE', time: '00:22:10 ago', action: 'View' },
+    { type: 'resolved', icon: '✅', title: 'Certificate Renewal Complete', desc: 'TLS certificate auto-renewed. No downtime detected.', svc: 'API-GATEWAY', time: '01:04:55 ago', action: 'View' },
+  ];
+  return `<div style="display:flex;flex-direction:column;gap:8px">${alerts.map(a => `
+    <div class="alert-card ${a.type} animated">
+      <span class="alert-icon">${a.icon}</span>
+      <div class="alert-info">
+        <div class="alert-title" style="color:${a.type==='critical'?'var(--red2)':a.type==='warning'?'var(--amber2)':'var(--green2)'}">${a.title}</div>
+        <div class="alert-desc">${a.desc}</div>
+        <div class="alert-meta">
+          <span class="alert-svc">${a.svc}</span>
+          <span class="alert-time">• ${a.time}</span>
+          <button class="alert-action ${a.type}">${a.action}</button>
+        </div>
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+function renderArchDiagram() {
+  const nodes = [
+    { label: 'Auth Service', cls: 'auth', detail: ':8081' },
+    { label: 'Kafka Broker', cls: 'kafka', detail: ':9092' },
+    { label: 'Monitoring Service', cls: 'monitor', detail: ':8082' },
+    { label: 'MongoDB', cls: 'mongo', detail: ':27017' },
+    { label: 'WebSocket Server', cls: 'ws', detail: ':8082/ws' },
+    { label: 'Frontend Dashboard', cls: 'frontend', detail: ':3000' },
+  ];
+  return `<div class="arch-flow">
+    ${nodes.map((n, i) => `
+      ${i > 0 ? `<div class="arch-connector"><div class="arch-line" style="background:linear-gradient(var(--border2),var(--border));width:1px;height:18px"></div><div class="arch-arrow" style="color:var(--border2)">▼</div></div>` : ''}
+      <div class="arch-node ${n.cls}">${n.label}<span style="opacity:0.6;font-size:8px;margin-left:5px">${n.detail}</span></div>
+    `).join('')}
+  </div>`;
+}
+
+function renderTimeline() {
+  const events = [
+    { color: 'var(--red)', title: 'AUTH-SERVICE error spike detected', time: '14:32:11' },
+    { color: 'var(--amber)', title: 'Kafka consumer lag alert triggered', time: '14:28:44' },
+    { color: 'var(--blue)', title: 'API-GATEWAY auto-scaled to 4 instances', time: '14:25:02' },
+    { color: 'var(--green)', title: 'Certificate renewed successfully', time: '13:58:30' },
+    { color: 'var(--purple)', title: 'AI model detected traffic anomaly', time: '13:44:17' },
+    { color: 'var(--cyan)', title: 'SERVICE-REGISTRY health check OK', time: '13:30:00' },
+  ];
+  return `<div class="timeline">${events.map((e, i) => `
+    <div class="tl-item">
+      ${i < events.length - 1 ? '<div class="tl-line"></div>' : ''}
+      <div class="tl-dot" style="background:${e.color};box-shadow:0 0 5px ${e.color}"></div>
+      <div class="tl-content">
+        <div class="tl-title">${e.title}</div>
+        <div class="tl-time">${e.time}</div>
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+function renderDashboard() {
+  return `
+    <div class="section-header"><span class="section-title">Overview</span><span class="section-badge">LIVE</span><div class="section-line"></div></div>
+    ${renderMetricCards()}
+
+    <div class="two-col">
+      <div>
+        <div class="section-header"><span class="section-title">Logs / Min</span><div class="section-line"></div></div>
+        <div class="panel">
+          <div class="chart-wrap"><canvas id="chart-logs" role="img" aria-label="Line chart showing logs per minute over time">Log ingestion rate over last 60 seconds</canvas></div>
+        </div>
+      </div>
+      <div>
+        <div class="section-header"><span class="section-title">Kafka Throughput</span><div class="section-line"></div></div>
+        <div class="panel">
+          <div class="chart-wrap"><canvas id="chart-kafka" role="img" aria-label="Area chart of Kafka events per second">Kafka events per second</canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <div class="section-header"><span class="section-title">Error Distribution</span><div class="section-line"></div></div>
+        <div class="panel"><div class="chart-wrap" style="height:160px"><canvas id="chart-pie" role="img" aria-label="Pie chart of error distribution by service">Error distribution across services</canvas></div></div>
+      </div>
+      <div>
+        <div class="section-header"><span class="section-title">Service Activity</span><div class="section-line"></div></div>
+        <div class="panel"><div class="chart-wrap" style="height:160px"><canvas id="chart-bar" role="img" aria-label="Bar chart of service request counts">Requests per service</canvas></div></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <div class="section-header"><span class="section-title">Live Log Stream</span><div class="section-line"></div></div>
+        ${renderLogPanel()}
+      </div>
+      <div>
+        <div class="section-header"><span class="section-title">Activity Timeline</span><div class="section-line"></div></div>
+        <div class="panel"><div class="panel-body">${renderTimeline()}</div></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <div class="section-header"><span class="section-title">Service Health</span><div class="section-line"></div></div>
+        ${renderServices()}
+      </div>
+      <div>
+        <div class="section-header"><span class="section-title">System Architecture</span><div class="section-line"></div></div>
+        <div class="panel"><div class="panel-body" style="display:flex;gap:12px">${renderArchDiagram()}<div style="flex:1">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:8px;font-family:var(--mono)">DATA FLOW</div>
+          <div style="display:flex;flex-direction:column;gap:5px;font-size:10px">
+            ${['WebSocket /topic/logs','REST GET /logs','REST GET /logs/level/INFO','REST GET /logs/service/*'].map(e=>`<div style="padding:4px 8px;background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.15);border-radius:6px;font-family:var(--mono);color:var(--blue2)">${e}</div>`).join('')}
+          </div>
+        </div></div></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderLogsPage() {
+  return `
+    <div class="section-header"><span class="section-title">Live Log Stream</span><span class="section-badge">WebSocket /topic/logs</span><div class="section-line"></div></div>
+    <div class="panel" style="flex:1">
+      <div class="panel-header">
+        <span style="font-size:13px">📋</span>
+        <span class="panel-title">Real-Time Log Viewer</span>
+        <div style="display:flex;gap:4px">
+          ${['ALL','INFO','WARN','ERROR','DEBUG'].map((l,i) => `<button class="btn-sm${i===0?' active':''}" onclick="filterByLevel('${l}',this)">${l}</button>`).join('')}
+        </div>
+        <button class="btn-sm" id="pause-btn" onclick="togglePause()">${logPaused ? '▶ Resume' : '⏸ Pause'}</button>
+      </div>
+      <div class="log-stream" id="log-stream" style="height:400px">${logs.slice(-100).map(renderLogEntry).join('')}</div>
+      <div class="log-controls">
+        <input class="log-search" placeholder="Search logs…" oninput="filterLogs(this.value)" />
+        <span style="font-size:9px;color:var(--text3);font-family:var(--mono)">${logs.length} total entries</span>
+        <button class="btn-sm" onclick="clearLogs()">🗑 Clear</button>
+      </div>
+    </div>`;
+}
+
+function filterByLevel(level, btn) {
+  document.querySelectorAll('.btn-sm').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const el = document.getElementById('log-stream');
+  if (!el) return;
+  const filtered = level === 'ALL' ? logs.slice(-100) : logs.filter(l => l.lvl === level).slice(-100);
+  el.innerHTML = filtered.map(renderLogEntry).join('');
+}
+
+function renderServicesPage() {
+  return `
+    <div class="section-header"><span class="section-title">Service Health Monitor</span><span class="section-badge">${SERVICES.filter(s=>s.status==='online').length}/${SERVICES.length} Online</span><div class="section-line"></div></div>
+    ${renderServices()}
+    <div class="section-header" style="margin-top:4px"><span class="section-title">API Endpoints</span><div class="section-line"></div></div>
+    <div class="panel"><div class="panel-body">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${[
+          {method:'GET',path:'/logs',svc:'MONITORING-SVC',status:200},
+          {method:'GET',path:'/logs/service/AUTH-SERVICE',svc:'AUTH-SERVICE',status:200},
+          {method:'GET',path:'/logs/level/INFO',svc:'MONITORING-SVC',status:200},
+          {method:'WS',path:'/ws → /topic/logs',svc:'ALL',status:101},
+        ].map(e => `<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:7px">
+          <span style="font-size:9px;font-family:var(--mono);padding:2px 7px;border-radius:4px;background:${e.method==='WS'?'rgba(139,92,246,0.15)':'rgba(59,130,246,0.15)'};color:${e.method==='WS'?'var(--purple2)':'var(--blue2)'};min-width:40px;text-align:center">${e.method}</span>
+          <span style="font-size:11px;font-family:var(--mono);color:var(--text2);flex:1">localhost:8082${e.path}</span>
+          <span style="font-size:9px;color:var(--text3)">${e.svc}</span>
+          <span style="font-size:9px;font-family:var(--mono);color:var(--green2)">${e.status}</span>
+        </div>`).join('')}
+      </div>
+    </div></div>`;
+}
+
+function renderAlertsPage() {
+  return `
+    <div class="section-header"><span class="section-title">Alert Center</span><span class="section-badge" style="background:rgba(239,68,68,0.15);color:var(--red2);border-color:rgba(239,68,68,0.25)">2 Critical</span><div class="section-line"></div></div>
+    ${renderAlerts()}`;
+}
+
+function renderAnalyticsPage() {
+  return `
+    <div class="section-header"><span class="section-title">Analytics</span><span class="section-badge">Last 30s</span><div class="section-line"></div></div>
+    <div class="two-col">
+      <div class="panel"><div class="chart-wrap" style="height:180px"><canvas id="chart-logs" role="img" aria-label="Logs per minute">Logs per minute</canvas></div></div>
+      <div class="panel"><div class="chart-wrap" style="height:180px"><canvas id="chart-kafka" role="img" aria-label="Kafka throughput">Kafka throughput</canvas></div></div>
+    </div>
+    <div class="two-col" style="margin-top:4px">
+      <div class="panel"><div class="chart-wrap" style="height:180px"><canvas id="chart-pie" role="img" aria-label="Error distribution">Error distribution</canvas></div></div>
+      <div class="panel"><div class="chart-wrap" style="height:180px"><canvas id="chart-bar" role="img" aria-label="Service activity">Service activity</canvas></div></div>
+    </div>`;
+}
+
+function renderAIPage() {
+  return `
+    <div class="section-header"><span class="section-title">AI Insights Engine</span><span class="section-badge" style="background:rgba(139,92,246,0.15);color:var(--purple2);border-color:rgba(139,92,246,0.25)">ML Active</span><div class="section-line"></div></div>
+    <div style="padding:8px 12px;background:linear-gradient(135deg,rgba(139,92,246,0.1),rgba(59,130,246,0.05));border:1px solid rgba(139,92,246,0.2);border-radius:10px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:20px">🤖</span>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--purple2)">SmartOps AI Model v2.4 — Active</div>
+        <div style="font-size:10px;color:var(--text2)">Analyzing 182K+ log events · Anomaly detection running · 6 insights generated</div>
+      </div>
+      <span style="margin-left:auto;font-size:9px;padding:3px 8px;border-radius:6px;background:rgba(16,185,129,0.15);color:var(--green2)">● ONLINE</span>
+    </div>
+    ${renderAIInsights()}`;
+}
+
+function renderSettingsPage() {
+  const settings = [
+    { label: 'WebSocket Endpoint', val: 'http://localhost:8082/ws', type: 'text' },
+    { label: 'Log Refresh Interval', val: '2000ms', type: 'text' },
+    { label: 'Max Log Entries', val: '1000', type: 'text' },
+    { label: 'Alert Threshold (errors/min)', val: '10', type: 'text' },
+    { label: 'AI Anomaly Sensitivity', val: 'High', type: 'select' },
+    { label: 'Kafka Bootstrap Server', val: 'localhost:9092', type: 'text' },
+  ];
+  return `
+    <div class="section-header"><span class="section-title">Configuration</span><div class="section-line"></div></div>
+    <div class="panel"><div class="panel-body">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${settings.map(s => `<div style="display:flex;align-items:center;gap:12px">
+          <label style="font-size:11px;color:var(--text2);min-width:180px">${s.label}</label>
+          <input value="${s.val}" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;color:var(--text1);font-family:var(--mono);outline:none" />
+        </div>`).join('')}
+        <div style="margin-top:4px;display:flex;gap:8px">
+          <button class="btn-sm active">💾 Save Config</button>
+          <button class="btn-sm">🔄 Reset Defaults</button>
+          <button class="btn-sm">🧪 Test Connection</button>
+        </div>
+      </div>
+    </div></div>`;
+}
+
+function renderPage() {
+  const el = document.getElementById('main-content');
+  if (!el) return;
+  const pages = { dashboard: renderDashboard, logs: renderLogsPage, services: renderServicesPage, alerts: renderAlertsPage, analytics: renderAnalyticsPage, ai: renderAIPage, settings: renderSettingsPage };
+  el.innerHTML = (pages[currentPage] || renderDashboard)();
+  setTimeout(() => initCharts(), 50);
+  scrollLogToBottom();
+}
+
+function initCharts() {
+  const defaults = { responsive: true, maintainAspectRatio: false, animation: { duration: 400 }, plugins: { legend: { display: false } } };
+
+  const logsEl = document.getElementById('chart-logs');
+  if (logsEl && !charts.logs) {
+    charts.logs = new Chart(logsEl, {
+      type: 'line',
+      data: {
+        labels: timeLabels.slice(),
+        datasets: [{ label: 'Logs/min', data: logsPerMin.slice(), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2 }]
+      },
+      options: { ...defaults, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 9 } } } } }
+    });
+  }
+
+  const kafkaEl = document.getElementById('chart-kafka');
+  if (kafkaEl && !charts.kafka) {
+    charts.kafka = new Chart(kafkaEl, {
+      type: 'line',
+      data: {
+        labels: timeLabels.slice(),
+        datasets: [{ label: 'Events/s', data: kafkaData.slice(), borderColor: '#06b6d4', backgroundColor: 'rgba(6,182,212,0.08)', fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2 }]
+      },
+      options: { ...defaults, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 9 } } } } }
+    });
+  }
+
+  const pieEl = document.getElementById('chart-pie');
+  if (pieEl && !charts.pie) {
+    charts.pie = new Chart(pieEl, {
+      type: 'doughnut',
+      data: {
+        labels: ['AUTH-SVC', 'MONITORING', 'API-GW', 'REGISTRY'],
+        datasets: [{ data: [45, 28, 19, 8], backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#8b5cf6'], borderColor: '#080d1a', borderWidth: 3 }]
+      },
+      options: { ...defaults, cutout: '65%' }
+    });
+  }
+
+  const barEl = document.getElementById('chart-bar');
+  if (barEl && !charts.bar) {
+    charts.bar = new Chart(barEl, {
+      type: 'bar',
+      data: {
+        labels: ['AUTH','MONITORING','API-GW','REGISTRY'],
+        datasets: [{ data: [8420, 12350, 19800, 3200], backgroundColor: ['rgba(59,130,246,0.7)','rgba(139,92,246,0.7)','rgba(6,182,212,0.7)','rgba(16,185,129,0.7)'], borderRadius: 4 }]
+      },
+      options: { ...defaults, scales: { x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 9 } } }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 9 } } } } }
+    });
+  }
+}
+
+function updateCharts() {
+  const t = new Date();
+  const label = `${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`;
+
+  const newLog = randInt(40, 130);
+  const newKafka = randInt(6000, 12000);
+
+  timeLabels.push(label); if (timeLabels.length > 30) timeLabels.shift();
+  logsPerMin.push(newLog); if (logsPerMin.length > 30) logsPerMin.shift();
+  kafkaData.push(newKafka); if (kafkaData.length > 30) kafkaData.shift();
+
+  if (charts.logs) { charts.logs.data.labels = timeLabels; charts.logs.data.datasets[0].data = logsPerMin; charts.logs.update('none'); }
+  if (charts.kafka) { charts.kafka.data.labels = timeLabels; charts.kafka.data.datasets[0].data = kafkaData; charts.kafka.update('none'); }
+  if (charts.bar) { charts.bar.data.datasets[0].data = SERVICES.map(() => randInt(2000, 22000)); charts.bar.update('none'); }
+}
+
+function updateLogStream() {
+  if (logPaused) return;
+  const el = document.getElementById('log-stream');
+  if (!el) return;
+  const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+  el.innerHTML = logs.slice(-80).map(renderLogEntry).join('');
+  if (atBottom) el.scrollTop = el.scrollHeight;
+}
+
+function scrollLogToBottom() {
+  const el = document.getElementById('log-stream');
+  if (el) el.scrollTop = el.scrollHeight;
+}
+
+function updateMetrics() {
+  metrics.totalLogs += randInt(20, 80);
+  metrics.errors += Math.random() > 0.7 ? randInt(0, 3) : 0;
+  metrics.kafkaEps = randInt(7000, 10000);
+  metrics.health = randFloat(96, 99.9);
+}
+
+function tick_fn() {
+  tick++;
+  if (!logPaused) {
+    const count = randInt(1, 3);
+    for (let i = 0; i < count; i++) logs.push(genLog());
+    if (logs.length > 1000) logs = logs.slice(-1000);
+    updateLogStream();
+  }
+  if (tick % 5 === 0) {
+    updateCharts();
+    updateMetrics();
+    if (currentPage === 'dashboard') {
+      const cards = document.querySelectorAll('.metric-val');
+      const vals = [(metrics.totalLogs/1000).toFixed(1)+'K', metrics.activeServices, metrics.errors, metrics.warnings, (metrics.kafkaEps/1000).toFixed(1)+'K', metrics.health+'%'];
+      cards.forEach((c, i) => { if (vals[i] !== undefined) c.textContent = vals[i]; });
+    }
+  }
+}
+
+// INIT
+initLogs();
+renderPage();
+setInterval(tick_fn, 1800);
+</script>
