@@ -26,59 +26,62 @@ class WebSocketService {
   // CONNECT
   // =========================
 
-  async connect(onMessage: (log: Log) => void) {
-    // IMPORTANT: only /ws (not /topic/logs)
-    const socket = new SockJS('http://localhost:8080/ws')
-    const { Client } = await import('@stomp/stompjs')
+  async connect(
+  onMessage: (log: Log) => void
+) {
+  if (this.client?.active) {
+    return;
+  }
 
-    this.client = new Client({
-      webSocketFactory: () => socket,
-      reconnectDelay: 5000,
+  const { Client } =
+    await import('@stomp/stompjs');
 
-      onConnect: () => {
-        console.log('✅ WebSocket connected')
+  this.client = new Client({
+    webSocketFactory: () =>
+      new SockJS(
+        'http://localhost:8080/ws'
+      ),
 
-        // Subscribe to logs topic
-        this.client?.subscribe(
-          '/topic/logs',
-          (message: IMessage) => {
-            try {
-              const data: Log = JSON.parse(message.body)
-              onMessage(data)
-            } catch (err) {
-              console.error('❌ Parse error:', err)
-            }
+    reconnectDelay: 10000,
+
+    debug: () => {},
+
+    onConnect: () => {
+      this.client?.subscribe(
+        '/topic/logs',
+        (message: IMessage) => {
+          try {
+            const data: Log =
+              JSON.parse(message.body);
+
+            onMessage(data);
+
+          } catch {
+            // ignore bad messages
           }
-        )
-      },
+        }
+      );
+    },
 
-      onStompError: (frame) => {
-        console.error('❌ STOMP error:', frame)
-      },
+    onStompError: () => {},
 
-      onWebSocketError: (error) => {
-        console.error('❌ WebSocket error:', error)
-      },
+    onWebSocketError: () => {},
 
-      onDisconnect: () => {
-        console.log('🔌 WebSocket disconnected')
-      },
-    })
+    onDisconnect: () => {},
+  });
 
-    this.client.activate()
+  this.client.activate();
+}
+
+disconnect() {
+  if (!this.client) return;
+
+  if (this.client.active) {
+    this.client.deactivate();
   }
 
-  // =========================
-  // DISCONNECT
-  // =========================
-
-  disconnect() {
-    if (this.client) {
-      this.client.deactivate()
-      this.client = null
-      console.log('🔌 Disconnected manually')
-    }
-  }
+  this.client = null;
+}
 }
 
 // =========================

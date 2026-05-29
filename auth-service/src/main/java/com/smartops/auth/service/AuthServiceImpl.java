@@ -23,7 +23,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepo userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-    private final KafkaProducerService kafkaProducerService;
+    private final KafkaProducerService producer;
 
     @Override
     public String register(RegisterRequest request) {
@@ -47,14 +47,12 @@ public class AuthServiceImpl implements AuthService {
 
         userRepository.save(user);
 
-        LogEvent event = new LogEvent(
+
+        producer.sendLog(
                 "AUTH-SERVICE",
                 "INFO",
-                "New user registered: " + user.getEmail(),
-                LocalDateTime.now()
+                "New user registered: " + user.getEmail()
         );
-
-        kafkaProducerService.sendLog(event);
 
         return "User registered successfully";
     }
@@ -77,14 +75,12 @@ public class AuthServiceImpl implements AuthService {
                     "Invalid email or password"
             );
         }
-        LogEvent event = new LogEvent(
+
+        producer.sendLog(
                 "AUTH-SERVICE",
                 "INFO",
-                "User logged in: " + user.getEmail(),
-                LocalDateTime.now()
+                "User logged in: " + user.getEmail()
         );
-
-        kafkaProducerService.sendLog(event);
 
         return jwtUtil.generateToken(user);
     }

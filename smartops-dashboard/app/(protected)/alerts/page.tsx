@@ -1,44 +1,46 @@
-'use client';
+'use client'
 
-import { motion } from 'framer-motion';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { useAlerts } from '@/hooks/use-alerts';
-import { SectionHeader } from '@/components/shared/section-header';
+import { motion } from 'framer-motion'
+import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { useAlerts } from '@/hooks/use-alerts'
+import { SectionHeader } from '@/components/shared/section-header'
 
 export default function AlertsPage() {
-  const { alerts, stats, isConnected } = useAlerts();
+  const { alerts, stats, isConnected } = useAlerts()
 
-  // ✅ Dynamic severity styling
+  const formatDate = (date: string) => {
+    if (!date) return 'N/A'
+    return new Date(date).toLocaleString()
+  }
+
   const getSeverityClass = (severity: string) => {
     switch (severity) {
       case 'CRITICAL':
-        return 'text-red-500 bg-red-500/10 border-red-500/20';
+        return 'text-red-500 bg-red-500/10 border-red-500/20'
       case 'WARNING':
-        return 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20';
+        return 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20'
       case 'INFO':
-        return 'text-blue-500 bg-blue-500/10 border-blue-500/20';
+        return 'text-blue-500 bg-blue-500/10 border-blue-500/20'
       default:
-        return 'text-gray-400 bg-gray-500/10 border-gray-500/20';
+        return 'text-gray-400 bg-gray-500/10 border-gray-500/20'
     }
-  };
+  }
 
-  // ✅ Dynamic status styling
   const getStatusClass = (status: string) => {
     switch (status) {
       case 'ACTIVE':
-        return 'text-red-400 bg-red-500/10';
+        return 'text-red-400 bg-red-500/10'
       case 'ACKNOWLEDGED':
-        return 'text-yellow-400 bg-yellow-500/10';
+        return 'text-yellow-400 bg-yellow-500/10'
       case 'RESOLVED':
-        return 'text-green-400 bg-green-500/10';
+        return 'text-green-400 bg-green-500/10'
       default:
-        return 'text-gray-400 bg-gray-500/10';
+        return 'text-gray-400 bg-gray-500/10'
     }
-  };
+  }
 
   return (
     <div className="p-4 space-y-6">
-      {/* ================= HEADER ================= */}
       <SectionHeader
         title="Alerts & Incidents"
         badge={isConnected ? 'Live' : 'Disconnected'}
@@ -46,36 +48,15 @@ export default function AlertsPage() {
         icon={<AlertTriangle className="w-4 h-4" />}
       />
 
-      {/* ================= STATS ================= */}
+      {/* STATS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="surface-card p-4">
-          <p className="text-xs text-text3">Total</p>
-          <p className="text-lg font-semibold">{stats?.total ?? 0}</p>
-        </div>
-
-        <div className="surface-card p-4">
-          <p className="text-xs text-text3">Active</p>
-          <p className="text-lg font-semibold text-red-400">
-            {stats?.active ?? 0}
-          </p>
-        </div>
-
-        <div className="surface-card p-4">
-          <p className="text-xs text-text3">Acknowledged</p>
-          <p className="text-lg font-semibold text-yellow-400">
-            {(stats as any)?.acknowledged ?? 0}
-          </p>
-        </div>
-
-        <div className="surface-card p-4">
-          <p className="text-xs text-text3">Resolved</p>
-          <p className="text-lg font-semibold text-green-400">
-            {stats?.resolved ?? 0}
-          </p>
-        </div>
+        <Card label="Total" value={stats?.total ?? 0} />
+        <Card label="Active" value={stats?.active ?? 0} red />
+        <Card label="Acknowledged" value={stats?.acknowledged ?? 0} yellow />
+        <Card label="Resolved" value={stats?.resolved ?? 0} green />
       </div>
 
-      {/* ================= REFRESH ================= */}
+      {/* REFRESH */}
       <div className="flex justify-end">
         <button
           onClick={() => window.location.reload()}
@@ -86,15 +67,11 @@ export default function AlertsPage() {
         </button>
       </div>
 
-      {/* ================= ALERT LIST ================= */}
+      {/* ALERT LIST */}
       <div className="space-y-3">
         {alerts.map((alert, index) => {
-          const severityClass = getSeverityClass(
-            alert.severity.toUpperCase()
-          );
-          const statusClass = getStatusClass(
-            alert.status.toUpperCase()
-          );
+          const severityClass = getSeverityClass(alert.severity)
+          const statusClass = getStatusClass(alert.status)
 
           return (
             <motion.div
@@ -104,41 +81,48 @@ export default function AlertsPage() {
               transition={{ delay: index * 0.05 }}
               className="surface-card p-4 flex items-center justify-between"
             >
-              {/* LEFT */}
-              <div className="flex flex-col gap-1">
-                <p className="text-sm font-semibold text-text1">
-                  {alert.title}
-                </p>
-
-                <p className="text-xs text-text3">
-                  {(alert as any).description ?? ''}
-                </p>
-
+              <div>
+                <p className="font-semibold">{alert.title}</p>
+                <p className="text-xs text-text3">{alert.message}</p>
                 <p className="text-2xs text-text3">
-                  {new Date(alert.timestamp).toLocaleString()}
+                  {formatDate(alert.createdAt)}
                 </p>
               </div>
 
-              {/* RIGHT */}
-              <div className="flex items-center gap-2">
-                {/* Severity */}
-                <span
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold border ${severityClass}`}
-                >
-                  {alert.severity.toUpperCase()}
+              <div className="flex gap-2">
+                <span className={`px-2 py-1 text-xs border rounded ${severityClass}`}>
+                  {alert.severity}
                 </span>
 
-                {/* Status */}
-                <span
-                  className={`px-3 py-1 rounded-lg text-xs font-medium ${statusClass}`}
-                >
-                  {alert.status.toUpperCase()}
+                <span className={`px-2 py-1 text-xs rounded ${statusClass}`}>
+                  {alert.status}
                 </span>
               </div>
             </motion.div>
-          );
+          )
         })}
       </div>
     </div>
-  );
+  )
+}
+
+function Card({ label, value, red, yellow, green }: any) {
+  return (
+    <div className="surface-card p-4">
+      <p className="text-xs text-text3">{label}</p>
+      <p
+        className={`text-lg font-semibold ${
+          red
+            ? 'text-red-400'
+            : yellow
+            ? 'text-yellow-400'
+            : green
+            ? 'text-green-400'
+            : ''
+        }`}
+      >
+        {value}
+      </p>
+    </div>
+  )
 }

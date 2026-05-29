@@ -159,41 +159,68 @@ subscribeToLogs(
 
   const WS_URL =
     process.env.NEXT_PUBLIC_WS_URL ||
-    'http://localhost:8080/ws'
-
-  const socket = new SockJS(WS_URL)
+    'http://localhost:8082/ws';
 
   const client = new Client({
-    webSocketFactory: () => socket,
-    reconnectDelay: 5000,
+    webSocketFactory: () =>
+      new SockJS(WS_URL),
+
+    reconnectDelay: 10000,
+
+    debug: () => {},
 
     onConnect: () => {
-      console.log('✅ Logs WebSocket connected')
 
-      client.subscribe('/topic/logs', (msg: IMessage) => {
-        try {
-          const log: Log = JSON.parse(msg.body)
-          onMessage(log)
-        } catch (err) {
-          console.error('Parse error', err)
-        }
-      })
+      const subscription =
+        client.subscribe(
+          '/topic/logs',
+          (msg: IMessage) => {
+            try {
+              const log: Log =
+                JSON.parse(msg.body);
+
+              onMessage(log);
+
+            } catch {
+              // ignore malformed payloads
+            }
+          }
+        );
+
+      return () => {
+        subscription.unsubscribe();
+      };
     },
 
-    onStompError: (frame) => {
-      console.error('STOMP error', frame)
-      onError?.(new Error('STOMP error'))
+    onWebSocketClose: () => {
+      onError?.(
+        new Error(
+          'WebSocket connection closed'
+        )
+      );
     },
 
     onWebSocketError: () => {
-      onError?.(new Error('WebSocket connection failed'))
+      onError?.(
+        new Error(
+          'WebSocket connection failed'
+        )
+      );
     },
-  })
 
-  client.activate()
+    onStompError: () => {
+      onError?.(
+        new Error('STOMP error')
+      );
+    },
+  });
+
+  client.activate();
 
   return () => {
-    client.deactivate()
-  }
-},
+    if (client.active) {
+      client.deactivate();
+    }
+  };
+}
 }

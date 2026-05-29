@@ -40,42 +40,74 @@ const AuthContext = createContext<
   AuthContextType | undefined
 >(undefined)
 
+const PUBLIC_ROUTES = [
+  '/login',
+  '/register',
+]
+
 export function AuthProvider({
   children,
 }: {
   children: ReactNode
 }) {
-  const [user, setUser] = useState<User | null>(
-    null
-  )
 
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] =
+    useState<User | null>(null)
 
-  // Initialize authentication
+  const [loading, setLoading] =
+    useState(true)
+
+  // ================= INITIALIZE AUTH =================
+
   useEffect(() => {
+
     const initializeAuth = async () => {
+
       try {
+
+        const currentPath =
+          window.location.pathname
+
+        const isPublicRoute =
+          PUBLIC_ROUTES.includes(currentPath)
+
+        // Skip auth check on public routes
+        if (isPublicRoute) {
+
+          setLoading(false)
+
+          return
+        }
+
         const currentUser =
           await authService.getCurrentUser()
 
         setUser(currentUser)
-      } catch {
-        // User not authenticated
+
+      } catch (error) {
+
+        // silently fail
         setUser(null)
+
       } finally {
+
         setLoading(false)
       }
     }
 
     initializeAuth()
+
   }, [])
 
-  // Login
+  // ================= LOGIN =================
+
   const login = async (
     email: string,
     password: string
   ) => {
+
     try {
+
       setLoading(true)
 
       await authService.login({
@@ -87,18 +119,29 @@ export function AuthProvider({
         await authService.getCurrentUser()
 
       setUser(currentUser)
+
+    } catch (error) {
+
+      setUser(null)
+
+      throw error
+
     } finally {
+
       setLoading(false)
     }
   }
 
-  // Register
+  // ================= REGISTER =================
+
   const register = async (
     email: string,
     password: string,
     name: string
   ) => {
+
     try {
+
       setLoading(true)
 
       await authService.register({
@@ -111,42 +154,94 @@ export function AuthProvider({
         await authService.getCurrentUser()
 
       setUser(currentUser)
+
+    } catch (error) {
+
+      setUser(null)
+
+      throw error
+
     } finally {
+
       setLoading(false)
     }
   }
 
-  // Logout
+  // ================= LOGOUT =================
+
   const logout = async () => {
+
     try {
+
       await authService.logout()
+
+    } catch (error) {
+
+      console.error(
+        'Logout failed:',
+        error
+      )
+
     } finally {
+
       setUser(null)
+
+      // redirect after logout
+      window.location.href = '/login'
     }
   }
 
-  // Password Reset
+  // ================= PASSWORD RESET =================
+
   const requestPasswordReset = async (
     email: string
   ) => {
-    await authService.requestPasswordReset(
-      email
-    )
+
+    try {
+
+      // Support multiple possible method names on authService
+      const svc: any = authService
+
+      if (typeof svc.requestPasswordReset === 'function') {
+        await svc.requestPasswordReset(email)
+      } else if (typeof svc.sendPasswordReset === 'function') {
+        await svc.sendPasswordReset(email)
+      } else if (typeof svc.forgotPassword === 'function') {
+        await svc.forgotPassword(email)
+      } else {
+        throw new Error('Password reset method not implemented on authService')
+      }
+
+    } catch (error) {
+
+      console.error(
+        'Password reset failed:',
+        error
+      )
+
+      throw error
+    }
   }
 
-  // Refresh current user
+  // ================= REFRESH USER =================
+
   const refreshUser = async () => {
+
     try {
+
       const currentUser =
         await authService.getCurrentUser()
 
       setUser(currentUser)
-    } catch {
+
+    } catch (error) {
+
       setUser(null)
     }
   }
 
   return (
+
     <AuthContext.Provider
       value={{
         user,
@@ -161,15 +256,22 @@ export function AuthProvider({
         refreshUser,
       }}
     >
+
       {children}
+
     </AuthContext.Provider>
   )
 }
 
+// ================= CUSTOM HOOK =================
+
 export function useAuth() {
-  const context = useContext(AuthContext)
+
+  const context =
+    useContext(AuthContext)
 
   if (!context) {
+
     throw new Error(
       'useAuth must be used within AuthProvider'
     )

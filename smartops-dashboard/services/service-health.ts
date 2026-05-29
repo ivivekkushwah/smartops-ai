@@ -104,4 +104,16 @@ export const serviceHealthService = {
     )
     return response.data
   },
+
+  // =========================
+// DELETE SERVICE
+// =========================
+async deleteService(
+  id: string
+): Promise<void> {
+
+  await api.delete(
+    `/api/monitor/services/${id}`
+  )
+},
 }

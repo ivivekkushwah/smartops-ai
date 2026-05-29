@@ -1,4 +1,4 @@
-package com.smartops.auth.kafka;
+package com.smartops.gateway.kafka;
 
 import com.smartops.common.event.LogEvent;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +25,4 @@ public class KafkaProducerService {
 
         kafkaTemplate.send(TOPIC, event);
     }
-
-
 }

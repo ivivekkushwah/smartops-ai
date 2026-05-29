@@ -1,6 +1,7 @@
 package com.smartops.alert.dto;
 
 import com.smartops.alert.model.AlertSeverity;
+import com.smartops.alert.model.AlertStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -20,4 +21,6 @@ public class CreateAlertRequest {
 
     @NotBlank
     private String message;
+
+    private AlertStatus status;
 }

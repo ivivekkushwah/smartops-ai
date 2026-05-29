@@ -5,6 +5,7 @@ package com.smartops.alert.service;
 import com.smartops.alert.dto.AlertResponse;
 import com.smartops.alert.dto.AlertStatsResponse;
 import com.smartops.alert.dto.CreateAlertRequest;
+import com.smartops.alert.kafka.KafkaProducerService;
 import com.smartops.alert.model.Alert;
 import com.smartops.alert.model.AlertSeverity;
 import com.smartops.alert.model.AlertStatus;
@@ -25,6 +26,7 @@ public class AlertServiceImpl implements AlertService {
     private final AlertRepository alertRepository;
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final KafkaProducerService producer;
 
     // ==========================================
     // CREATE ALERT
@@ -48,6 +50,12 @@ public class AlertServiceImpl implements AlertService {
         messagingTemplate.convertAndSend(
                 "/topic/alerts",
                 mapToResponse(savedAlert)
+        );
+
+        producer.sendLog(
+                "ALERT",
+                "WARN",
+                "New alert created for service: " + request.getServiceName()
         );
 
         return mapToResponse(savedAlert);
@@ -113,6 +121,11 @@ public class AlertServiceImpl implements AlertService {
                 "/topic/alerts",
                 mapToResponse(updatedAlert)
         );
+        producer.sendLog(
+                "ALERT",
+                "INFO",
+                "Alert resolved for service: " + alert.getServiceName()
+        );
 
         return mapToResponse(updatedAlert);
     }
@@ -136,6 +149,12 @@ public class AlertServiceImpl implements AlertService {
         messagingTemplate.convertAndSend(
                 "/topic/alerts",
                 mapToResponse(updatedAlert)
+        );
+
+        producer.sendLog(
+                "ALERT",
+                "INFO",
+                "Alert acknowledged for service: " + alert.getServiceName()
         );
 
         return mapToResponse(updatedAlert);
@@ -190,6 +209,11 @@ public class AlertServiceImpl implements AlertService {
 
     @Override
     public void deleteAlert(String id) {
+        producer.sendLog(
+                "ALERT",
+                "WARN",
+                "Alert deleted with ID: " + id
+        );
 
         alertRepository.deleteById(id);
 
@@ -198,6 +222,7 @@ public class AlertServiceImpl implements AlertService {
                 "/topic/alerts/delete",
                 Map.of("id", id)
         );
+
     }
 
     // ==========================================

@@ -78,7 +78,7 @@ export default function LogsPage() {
             serviceName: (newLog as any).serviceName ?? 'unknown',
           };
 
-          return [entry, ...prev].slice(0, 100);
+          return [entry, ...prev].slice(0, 50);
         });
       });
 
@@ -262,24 +262,10 @@ export default function LogsPage() {
           ) : (
             <div className="space-y-1.5">
               {filteredLogs.map((log) => (
-                <motion.div
-                  key={log.id}
-                  initial={{
-                    opacity: 0,
-                    x: -10,
-                  }}
-                  animate={{
-                    opacity: 1,
-                    x: 0,
-                  }}
-                  transition={{
-                    duration: 0.2,
-                  }}
-                  className="flex gap-2"
-                  style={{
-                    lineHeight: '1.7',
-                  }}
-                >
+                <div
+  key={log.id}
+  className="flex gap-2"
+>
                   <span
                     style={{
                       color: 'var(--text3)',
@@ -333,7 +319,7 @@ export default function LogsPage() {
                   >
                     {log.message}
                   </span>
-                </motion.div>
+                </div>
               ))}
             </div>
           )}

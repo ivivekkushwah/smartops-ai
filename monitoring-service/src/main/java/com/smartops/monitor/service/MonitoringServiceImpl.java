@@ -1,6 +1,8 @@
 package com.smartops.monitor.service;
 
+import com.smartops.common.event.AlertEvent;
 import com.smartops.monitor.dto.*;
+import com.smartops.monitor.kafka.KafkaProducerService;
 import com.smartops.monitor.model.ServiceStatus;
 import com.smartops.monitor.repository.ServiceStatusRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +15,6 @@ import java.time.LocalDateTime;
 
 import java.util.List;
 import java.util.Map;
-import com.smartops.monitor.dto.*;
 import java.util.*;
 
 @Service
@@ -22,6 +23,8 @@ public class MonitoringServiceImpl implements MonitoringService {
 
     private final ServiceStatusRepository repository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final KafkaProducerService producer;
+
 
     RestTemplate restTemplate = new RestTemplate();
 
@@ -42,11 +45,20 @@ public class MonitoringServiceImpl implements MonitoringService {
         entity.setUserId(userId);                     // ✅ IMPORTANT
         entity.setServiceName(request.getServiceName());
         entity.setBaseUrl(request.getBaseUrl());
+        System.out.println("Checking: " + request.getBaseUrl());
 
         ServiceStatus saved = repository.save(entity);   // 🔥 MUST
 
         System.out.println("✅ SAVED: " + saved);
-
+        System.out.println("🔥 ADD SERVICE");
+        System.out.println("➡️ UserId: " + userId);
+        System.out.println("➡️ Service Name: " + request.getServiceName());
+        System.out.println("➡️ Base URL: " + request.getBaseUrl());
+        producer.sendLog(
+                "MONITORING",
+                "INFO",
+                "New service added: " + request.getServiceName()
+        );
         return saved;
     }
 
@@ -82,27 +94,61 @@ public class MonitoringServiceImpl implements MonitoringService {
     public DashboardMetricsResponse getDashboardMetrics(String userId) {
 
         List<ServiceStatus> services = repository.findByUserId(userId);
-
+        System.out.println(services);
         long total = services.size();
 
         long active = services.stream()
                 .filter(s -> "UP".equalsIgnoreCase(s.getStatus()))
                 .count();
 
-        double avgResponseTime = services.stream()
-                .mapToDouble(ServiceStatus::getResponseTime)
-                .average()
-                .orElse(0.0);
+        double totalCpu = 0;
+        double totalMemory = 0;
+        double totalRequests = 0;
+        double totalResponseTime = 0;
 
-        double errorRate = total == 0 ? 0 :
-                ((total - active) * 100.0) / total;
+        for (ServiceStatus s : services) {
+
+            double cpu = getMetricValue(
+                    s.getBaseUrl(),
+                    "system.cpu.usage"
+            );
+
+            double memory = getMetricValue(
+                    s.getBaseUrl(),
+                    "jvm.memory.used"
+            );
+
+            totalCpu += cpu * 100;
+
+            // bytes → MB
+            totalMemory += memory / (1024 * 1024);
+
+            if (s.getResponseTime() > 0) {
+                totalResponseTime += s.getResponseTime();
+            }
+
+            totalRequests += 1;
+        }
+
+        double avgCpu =
+                services.isEmpty() ? 0 : totalCpu / services.size();
+
+        double avgMemory =
+                services.isEmpty() ? 0 : totalMemory / services.size();
+
+        double avgResponseTime =
+                services.isEmpty() ? 0 : totalResponseTime / services.size();
+
+        double errorRate =
+                total == 0 ? 0 :
+                        ((total - active) * 100.0) / total;
 
         return DashboardMetricsResponse.builder()
                 .totalLogs(total)
                 .activeServices(active)
-                .cpuMetric(avgResponseTime / 10)
-                .memoryMetric(avgResponseTime / 8)
-                .requestThroughput(avgResponseTime)
+                .cpuMetric(avgCpu)
+                .memoryMetric(avgMemory)
+                .requestThroughput(totalRequests)
                 .errorRate(errorRate)
                 .serviceUptime(100 - errorRate)
                 .kafkaMetrics(getKafkaMetrics())
@@ -174,21 +220,59 @@ public class MonitoringServiceImpl implements MonitoringService {
 
         List<ServiceStatus> services = repository.findByUserId(userId);
 
-        double avgResponseTime = services.stream()
-                .mapToDouble(ServiceStatus::getResponseTime)
-                .average()
-                .orElse(0.0);
+        double totalCpu = 0;
+        double totalMemory = 0;
+        double totalResponseTime = 0;
 
-        int activeConnections = (int) services.stream()
-                .filter(s -> "UP".equalsIgnoreCase(s.getStatus()))
-                .count();
+        int activeConnections = 0;
+
+        for (ServiceStatus s : services) {
+
+            if ("UP".equalsIgnoreCase(s.getStatus())) {
+                activeConnections++;
+            }
+
+            double cpu = getMetricValue(
+                    s.getBaseUrl(),
+                    "system.cpu.usage"
+            );
+
+            double memory = getMetricValue(
+                    s.getBaseUrl(),
+                    "jvm.memory.used"
+            );
+
+            totalCpu += cpu * 100;
+
+            // bytes → MB
+            totalMemory += memory / (1024 * 1024);
+
+            if (s.getResponseTime() > 0) {
+                totalResponseTime += s.getResponseTime();
+            }
+        }
+
+        double avgCpu =
+                services.isEmpty() ? 0 : totalCpu / services.size();
+
+        double avgMemory =
+                services.isEmpty() ? 0 : totalMemory / services.size();
+
+        double avgResponseTime =
+                services.isEmpty() ? 0 : totalResponseTime / services.size();
+
+        double errorRate =
+                services.isEmpty()
+                        ? 0
+                        : ((services.size() - activeConnections) * 100.0)
+                        / services.size();
 
         RealTimeMetricsResponse metrics =
                 RealTimeMetricsResponse.builder()
-                        .cpuUsage(avgResponseTime / 10)
-                        .memoryUsage(avgResponseTime / 8)
+                        .cpuUsage(avgCpu)
+                        .memoryUsage(avgMemory)
                         .requestRate(avgResponseTime)
-                        .errorRate(100 - activeConnections * 100.0 / Math.max(services.size(), 1))
+                        .errorRate(errorRate)
                         .activeConnections(activeConnections)
                         .build();
 
@@ -243,17 +327,18 @@ public class MonitoringServiceImpl implements MonitoringService {
     // KAFKA METRICS
     // ==========================================
 
+
     @Override
     public KafkaMetricsResponse getKafkaMetrics() {
 
-        long count = repository.count();
+        long totalServices = repository.count();
 
         KafkaMetricsResponse kafkaMetrics =
                 KafkaMetricsResponse.builder()
-                        .topicsCount((int) count)
-                        .producerCount((int) count)
-                        .consumerCount((int) count)
-                        .throughputMbps(count * 2.5)
+                        .topicsCount(1)
+                        .producerCount(1)
+                        .consumerCount(1)
+                        .throughputMbps(totalServices * 1.5)
                         .build();
 
         messagingTemplate.convertAndSend("/topic/kafka", kafkaMetrics);
@@ -264,35 +349,143 @@ public class MonitoringServiceImpl implements MonitoringService {
     // ==========================================
     // CORE MONITORING LOGIC (AUTO CHECK)
     // ==========================================
+    private double getMetricValue(String url, String metricName) {
+
+        try {
+
+            Map response =
+                    restTemplate.getForObject(
+                            url + "/actuator/metrics/" + metricName,
+                            Map.class
+                    );
+
+            List<Map<String, Object>> measurements =
+                    (List<Map<String, Object>>) response.get("measurements");
+
+            if (measurements != null && !measurements.isEmpty()) {
+
+                Object value = measurements.get(0).get("value");
+
+                return Double.parseDouble(value.toString());
+            }
+
+        } catch (Exception e) {
+
+            System.out.println("Metric fetch failed: " + metricName);
+        }
+
+        return 0;
+    }
+
 
     @Override
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(
+            fixedRateString =
+                    "${monitoring.polling-rate}"
+    )
     public void monitorServices() {
 
+
+
+
         List<ServiceStatus> services = repository.findAll();
+
+        System.out.println("📦 Total services found: " + services.size());
 
         for (ServiceStatus s : services) {
 
             long start = System.currentTimeMillis();
 
+            String previousStatus = s.getStatus(); // 🔥 IMPORTANT
+
+            producer.sendLog(
+                    "MONITORING",
+                    "INFO",
+                    "Checking service: " + s.getServiceName()
+            );
+
+            System.out.println("\n🔍 Checking Service:");
+            System.out.println("➡️ Name: " + s.getServiceName());
+            System.out.println("➡️ URL: " + s.getBaseUrl());
+
             try {
-                restTemplate.getForObject(s.getBaseUrl(), String.class);
+                String response = restTemplate.getForObject(
+                        s.getBaseUrl() + "/actuator/health",
+                        String.class
+                );
 
                 long time = System.currentTimeMillis() - start;
 
                 s.setStatus("UP");
                 s.setResponseTime(time);
 
+                producer.sendLog(
+                        "MONITORING",
+                        "INFO",
+                        "Service UP: " + s.getServiceName()
+                );
+
+                // 🔥 RECOVERY ALERT (DOWN → UP)
+                if ("DOWN".equalsIgnoreCase(previousStatus)) {
+
+                    AlertEvent alert = new AlertEvent(
+                            s.getServiceName(),
+                            "INFO",
+                            s.getServiceName() + " is BACK UP",
+                            "RESOLVED",
+                            LocalDateTime.now()
+                    );
+
+                    producer.sendAlert(alert);
+                }
+
+                System.out.println("✅ STATUS: UP");
+                System.out.println("⏱ Response Time: " + time + " ms");
+
+                if (response != null) {
+                    System.out.println("📨 Response (trimmed): " +
+                            response.substring(0, Math.min(50, response.length())));
+                }
+
             } catch (Exception e) {
 
+                producer.sendLog(
+                        "MONITORING",
+                        "ERROR",
+                        "Service DOWN: " + s.getServiceName()
+                );
+
+                // 🔥 ALERT ONLY WHEN UP → DOWN
+                if (!"DOWN".equalsIgnoreCase(previousStatus)) {
+
+                    AlertEvent alert = new AlertEvent(
+                            s.getServiceName(),
+                            "CRITICAL",
+                            s.getServiceName() + " is DOWN",
+                            "ACTIVE",
+                            LocalDateTime.now()
+                    );
+
+                    producer.sendAlert(alert);
+                }
+
                 s.setStatus("DOWN");
-                s.setResponseTime(-1L); // ✅ FIXED
+                s.setResponseTime(-1L);
+
+                System.out.println("❌ STATUS: DOWN");
+                System.out.println("❌ ERROR: " + e.getMessage());
             }
 
+            // 🔥 IMPORTANT (you deleted this)
             s.setLastChecked(LocalDateTime.now());
 
+            // 🔥 IMPORTANT (you deleted this)
             repository.save(s);
+
+            System.out.println("💾 Saved status: " + s.getStatus());
         }
+
+        System.out.println("\n================ MONITORING END ==================\n");
     }
 
     @Override
@@ -332,6 +525,12 @@ public class MonitoringServiceImpl implements MonitoringService {
             throw new RuntimeException("Unauthorized");
         }
 
+        producer.sendLog(
+                "MONITORING",
+                "WARN",
+                "Service deleted: " + service.getServiceName()
+        );
+
         repository.delete(service);
     }
 
@@ -351,23 +550,29 @@ public class MonitoringServiceImpl implements MonitoringService {
             double value = switch (type.toLowerCase()) {
 
                 case "cpu" -> {
-                    // 🔥 Approx using response time
-                    yield s.getResponseTime() > 0 ? s.getResponseTime() : 0;
+
+                    yield getMetricValue(
+                            s.getBaseUrl(),
+                            "system.cpu.usage"
+                    ) * 100;
                 }
 
                 case "memory" -> {
-                    // 🔥 Approx (same as above for now)
-                    yield s.getResponseTime() > 0 ? s.getResponseTime() : 0;
+
+                    yield getMetricValue(
+                            s.getBaseUrl(),
+                            "jvm.memory.used"
+                    ) / (1024 * 1024);
                 }
 
                 case "requests" -> {
-                    // 🔥 From logs (Kafka/Mongo)
-                    yield repository.countById(s.getId());
+
+                    yield s.getResponseTime();
                 }
 
                 case "errors" -> {
-                    // 🔥 From logs
-                    yield repository.countErrorsById(s.getId());
+
+                    yield "DOWN".equalsIgnoreCase(s.getStatus()) ? 1 : 0;
                 }
 
                 default -> 0;

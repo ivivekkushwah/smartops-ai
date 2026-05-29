@@ -1,6 +1,8 @@
 package com.smartops.gateway.security;
 
+import com.smartops.gateway.kafka.KafkaProducerService;
 import jakarta.ws.rs.HttpMethod;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -11,16 +13,25 @@ import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+
+@RequiredArgsConstructor
 @Component
 public class JwtGatewayFilter implements GlobalFilter {
 
     @Autowired
     private JwtUtil jwtUtil;
 
+    private final KafkaProducerService producer;
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
 
         ServerHttpRequest request = exchange.getRequest();
+        producer.sendLog(
+                "GATEWAY",
+                "INFO",
+                "Incoming request: " + request.getMethod() + " " + request.getURI()
+        );
         String path = request.getURI().getPath();
 
         System.out.println("👉 Incoming Request: " + path);
@@ -48,15 +59,35 @@ public class JwtGatewayFilter implements GlobalFilter {
         try {
             if (cookie != null) {
                 String userId = jwtUtil.extractUserId(cookie.getValue());
+                producer.sendLog(
+                        "GATEWAY",
+                        "INFO",
+                        "User " + userId + " called: " + request.getURI()
+                );
                 System.out.println("✅ Extracted userId: " + userId);
 
                 ServerHttpRequest modifiedRequest = request.mutate()
                         .header("X-User-Id", userId)
                         .build();
+                exchange.getResponse().beforeCommit(() -> {
 
+                    producer.sendLog(
+                            "GATEWAY",
+                            "INFO",
+                            "Response: " + exchange.getResponse().getStatusCode()
+                    );
+
+                    return Mono.empty();
+                });
                 return chain.filter(exchange.mutate().request(modifiedRequest).build());
             }
         } catch (Exception e) {
+
+            producer.sendLog(
+                    "GATEWAY",
+                    "ERROR",
+                    "Error processing request: " + request.getURI()
+            );
             System.out.println("❌ JWT ERROR: " + e.getMessage());
         }
         System.out.println("🔥 JWT FILTER HIT");

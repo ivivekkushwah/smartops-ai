@@ -34,7 +34,7 @@ public class WebSocketConfig
             StompEndpointRegistry registry
     ) {
 
-        registry.addEndpoint("/monitor-ws")
+        registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*")
                 .withSockJS();
     }

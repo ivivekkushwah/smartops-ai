@@ -1,10 +1,8 @@
 'use client';
 
-import {
-  useEffect,
-  useState,
-  useCallback,
-} from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 
 import {
   alertService,
@@ -14,241 +12,191 @@ import {
 
 export interface UseAlertsReturn {
   alerts: Alert[];
-
   stats: AlertStats | null;
-
   loading: boolean;
-
   error: Error | null;
-
   refetch: () => Promise<void>;
-
-  acknowledge: (
-    alertId: string
-  ) => Promise<void>;
-
-  resolve: (
-    alertId: string
-  ) => Promise<void>;
-
-  delete: (
-    alertId: string
-  ) => Promise<void>;
-
+  acknowledge: (alertId: string) => Promise<void>;
+  resolve: (alertId: string) => Promise<void>;
+  delete: (alertId: string) => Promise<void>;
   isConnected: boolean;
 }
-
-/**
- * SmartOps AI Alerts Hook
- * Handles:
- * - Fetching alerts
- * - Stats
- * - Realtime updates
- * - Resolve/Acknowledge/Delete
- */
 
 export function useAlerts(
   subscribeToUpdates = true
 ): UseAlertsReturn {
-  const [alerts, setAlerts] = useState<
-    Alert[]
-  >([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [stats, setStats] = useState<AlertStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
-  const [stats, setStats] =
-    useState<AlertStats | null>(null);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState<Error | null>(null);
-
-  const [isConnected, setIsConnected] =
-    useState(false);
+  const wsUrl =
+    process.env.NEXT_PUBLIC_WS_URL ||
+    'http://localhost:8084/ws';
 
   // =========================================
   // FETCH ALERTS + STATS
   // =========================================
 
-  const fetchAlerts = useCallback(
-    async () => {
+  const fetchAlerts = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [alertsData, statsData] = await Promise.all([
+        alertService.getAlerts(),
+        alertService.getAlertStats(),
+      ]);
+
+      setAlerts(alertsData);
+      setStats(statsData);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err
+          : new Error('Failed to fetch alerts')
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // =========================================
+  // ACTIONS
+  // =========================================
+
+  const handleAcknowledge = useCallback(
+    async (alertId: string) => {
       try {
-        setLoading(true);
-
         setError(null);
-
-        const [
-          alertsData,
-          statsData,
-        ] = await Promise.all([
-          alertService.getAlerts(),
-
-          alertService.getAlertStats(),
-        ]);
-
-        setAlerts(alertsData);
-
-        setStats(statsData);
+        await alertService.acknowledgeAlert(alertId);
+        await fetchAlerts();
       } catch (err) {
         setError(
           err instanceof Error
             ? err
-            : new Error(
-                'Failed to fetch alerts'
-              )
+            : new Error('Failed to acknowledge alert')
         );
-      } finally {
-        setLoading(false);
       }
     },
-
-    []
+    [fetchAlerts]
   );
-
-  // =========================================
-  // ACKNOWLEDGE ALERT
-  // =========================================
-
-  const handleAcknowledge =
-    useCallback(
-      async (alertId: string) => {
-        try {
-          setError(null);
-
-          await alertService.acknowledgeAlert(
-            alertId
-          );
-
-          await fetchAlerts();
-        } catch (err) {
-          setError(
-            err instanceof Error
-              ? err
-              : new Error(
-                  'Failed to acknowledge alert'
-                )
-          );
-        }
-      },
-
-      [fetchAlerts]
-    );
-
-  // =========================================
-  // RESOLVE ALERT
-  // =========================================
 
   const handleResolve = useCallback(
     async (alertId: string) => {
       try {
         setError(null);
-
-        await alertService.resolveAlert(
-          alertId
-        );
-
+        await alertService.resolveAlert(alertId);
         await fetchAlerts();
       } catch (err) {
         setError(
           err instanceof Error
             ? err
-            : new Error(
-                'Failed to resolve alert'
-              )
+            : new Error('Failed to resolve alert')
         );
       }
     },
-
     [fetchAlerts]
   );
-
-  // =========================================
-  // DELETE ALERT
-  // =========================================
 
   const handleDelete = useCallback(
     async (alertId: string) => {
       try {
         setError(null);
-
-        await alertService.deleteAlert(
-          alertId
-        );
-
+        await alertService.deleteAlert(alertId);
         await fetchAlerts();
       } catch (err) {
         setError(
           err instanceof Error
             ? err
-            : new Error(
-                'Failed to delete alert'
-              )
+            : new Error('Failed to delete alert')
         );
       }
     },
-
     [fetchAlerts]
   );
 
   // =========================================
-  // INITIAL LOAD + WEBSOCKET
+  // INITIAL LOAD
   // =========================================
 
   useEffect(() => {
     fetchAlerts();
+  }, [fetchAlerts]);
 
-    // Realtime subscription
+  // =========================================
+  // WEBSOCKET (FIXED VERSION)
+  // =========================================
 
-    if (subscribeToUpdates) {
-      const unsubscribe =
-        alertService.subscribeToAlerts(
-          (newAlert) => {
+  useEffect(() => {
+    if (!subscribeToUpdates) return;
+
+    const client = new Client({
+      webSocketFactory: () => new SockJS(wsUrl),
+      reconnectDelay: 3000,
+
+      debug: (str) => console.log('[STOMP]', str),
+
+      onConnect: () => {
+        console.log('✅ Alerts Connected');
+        setIsConnected(true);
+
+        client.subscribe('/topic/alerts', (message) => {
+          try {
+            const newAlert: Alert = JSON.parse(message.body);
+
+            console.log('📩 New Alert:', newAlert);
+
             setAlerts((prev) => {
-              const exists =
-                prev.some(
-                  (a) =>
-                    a.id === newAlert.id
-                );
+              const exists = prev.some(
+                (a) => a.id === newAlert.id
+              );
 
               if (exists) {
                 return prev.map((a) =>
-                  a.id === newAlert.id
-                    ? newAlert
-                    : a
+                  a.id === newAlert.id ? newAlert : a
                 );
               }
 
-              return [
-                newAlert,
-                ...prev,
-              ];
+              return [newAlert, ...prev];
             });
-
-            setIsConnected(true);
-          },
-
-          (err) => {
-            console.error(
-              'Alert subscription error:',
-              err
-            );
-
-            setError(err);
-
-            setIsConnected(false);
+          } catch (err) {
+            console.error('Parse error:', err);
           }
-        );
+        });
 
-      return () => {
-        unsubscribe();
+        // OPTIONAL: delete event
+        client.subscribe('/topic/alerts/delete', (msg) => {
+          const { id } = JSON.parse(msg.body);
+          setAlerts((prev) =>
+            prev.filter((a) => a.id !== id)
+          );
+        });
+      },
 
+      onWebSocketClose: () => {
+        console.log('❌ Alerts Disconnected');
         setIsConnected(false);
-      };
-    }
-  }, [
-    subscribeToUpdates,
-    fetchAlerts,
-  ]);
+      },
+
+      onWebSocketError: (err) => {
+        console.error('❌ WebSocket Error', err);
+        setIsConnected(false);
+      },
+
+      onStompError: (frame) => {
+        console.error('❌ STOMP Error', frame);
+      },
+    });
+
+    client.activate();
+
+    return () => {
+      client.deactivate();
+      setIsConnected(false);
+    };
+  }, [subscribeToUpdates, wsUrl]);
 
   // =========================================
   // RETURN
@@ -256,22 +204,13 @@ export function useAlerts(
 
   return {
     alerts,
-
     stats,
-
     loading,
-
     error,
-
     refetch: fetchAlerts,
-
-    acknowledge:
-      handleAcknowledge,
-
+    acknowledge: handleAcknowledge,
     resolve: handleResolve,
-
     delete: handleDelete,
-
     isConnected,
   };
 }

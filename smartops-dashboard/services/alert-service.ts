@@ -1,164 +1,170 @@
-import api from "@/service/api"
-import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
+import api from "@/service/api";
+import { Client } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
+
+// =========================
+// TYPES (FIXED)
+// =========================
 
 export interface Alert {
-  id: string
-  title: string
-  message: string
-  severity: 'critical' | 'warning' | 'info'
-  status: 'active' | 'resolved' | 'acknowledged'
-  serviceId: string
-  source: string
-  timestamp: string
-  resolvedAt?: string
-  acknowledgedAt?: string
-  acknowledgedBy?: string
+  id: string;
+  title: string;
+  message: string;
+
+  severity: "CRITICAL" | "WARNING" | "INFO"; // ✅ FIXED
+  status: "ACTIVE" | "RESOLVED" | "ACKNOWLEDGED"; // ✅ FIXED
+
+  serviceName: string;
+
+  createdAt: string; // ✅ FIXED (NOT timestamp)
+
+  resolvedAt?: string;
+  acknowledgedAt?: string;
 }
 
 export interface AlertStats {
-  critical: number
-  warning: number
-  info: number
-  total: number
-  resolved: number
-  active: number
+  critical: number;
+  warning: number;
+  info: number;
+  total: number;
+  resolved: number;
+  active: number;
+  acknowledged: number
 }
 
 export interface AlertFilter {
-  severity?: 'critical' | 'warning' | 'info'
-  status?: 'active' | 'resolved' | 'acknowledged'
-  serviceId?: string
-  limit?: number
+  severity?: "CRITICAL" | "WARNING" | "INFO";
+  status?: "ACTIVE" | "RESOLVED" | "ACKNOWLEDGED";
+  serviceName?: string;
+  limit?: number;
 }
 
+// =========================
+// SERVICE
+// =========================
+
 export const alertService = {
-  // Get all alerts
+  // =========================
+  // API METHODS
+  // =========================
+
   async getAlerts(filter?: AlertFilter): Promise<Alert[]> {
-    try {
-      const response = await api.get('/api/alerts', {
-        params: filter,
-      })
-
-      return response.data
-    } catch (error) {
-      console.error('Failed to fetch alerts:', error)
-      throw error
-    }
+    const response = await api.get("/api/alerts", {
+      params: filter,
+    });
+    return response.data;
   },
 
-  // Get active alerts
   async getActiveAlerts(): Promise<Alert[]> {
-    try {
-      const response = await api.get('/api/alerts/active')
-
-      return response.data
-    } catch (error) {
-      console.error('Failed to fetch active alerts:', error)
-      throw error
-    }
+    const response = await api.get("/api/alerts/active");
+    return response.data;
   },
 
-  // Get critical alerts
   async getCriticalAlerts(): Promise<Alert[]> {
-    try {
-      const response = await api.get('/api/alerts/critical')
-
-      return response.data
-    } catch (error) {
-      console.error('Failed to fetch critical alerts:', error)
-      throw error
-    }
+    const response = await api.get("/api/alerts/critical");
+    return response.data;
   },
 
-  // Get alert statistics
   async getAlertStats(): Promise<AlertStats> {
-    try {
-      const response = await api.get('/api/alerts/stats')
-
-      return response.data
-    } catch (error) {
-      console.error('Failed to fetch alert stats:', error)
-      throw error
-    }
+    const response = await api.get("/api/alerts/stats");
+    return response.data;
   },
 
-  // Acknowledge alert
   async acknowledgeAlert(alertId: string): Promise<Alert> {
-    try {
-      const response = await api.put(
-        `/api/alerts/${alertId}/acknowledge`
-      )
-
-      return response.data
-    } catch (error) {
-      console.error(`Failed to acknowledge alert ${alertId}:`, error)
-      throw error
-    }
+    const response = await api.put(
+      `/api/alerts/${alertId}/acknowledge`
+    );
+    return response.data;
   },
 
-  // Resolve alert
   async resolveAlert(alertId: string): Promise<Alert> {
-    try {
-      const response = await api.put(
-        `/api/alerts/${alertId}/resolve`
-      )
-
-      return response.data
-    } catch (error) {
-      console.error(`Failed to resolve alert ${alertId}:`, error)
-      throw error
-    }
+    const response = await api.put(
+      `/api/alerts/${alertId}/resolve`
+    );
+    return response.data;
   },
 
-  // Delete alert
   async deleteAlert(alertId: string): Promise<void> {
-    try {
-      await api.delete(`/api/alerts/${alertId}`)
-    } catch (error) {
-      console.error(`Failed to delete alert ${alertId}:`, error)
-      throw error
-    }
+    await api.delete(`/api/alerts/${alertId}`);
   },
 
-  
+  // =========================
+  // WEBSOCKET (FULL FIX)
+  // =========================
 
-subscribeToAlerts(
+  subscribeToAlerts(
   onAlert: (alert: Alert) => void,
-  onError?: (error: Error) => void
+  onError?: (error: Error) => void,
+  onConnect?: () => void,
+  onDisconnect?: () => void
 ): () => void {
+
   const wsUrl =
     process.env.NEXT_PUBLIC_WS_URL ||
-    'http://localhost:8084/ws'; // ✅ ONLY endpoint
+    "http://localhost:8084/ws";
 
   const client = new Client({
-    webSocketFactory: () => new SockJS(wsUrl),
-    reconnectDelay: 3000,
+    webSocketFactory: () =>
+      new SockJS(wsUrl),
+
+    reconnectDelay: 10000,
+
+    debug: () => {},
 
     onConnect: () => {
-      console.log('[Alerts] Connected');
 
-      // ✅ Subscribe to topic
-      client.subscribe('/topic/alerts', (message) => {
-        try {
-          const alert: Alert = JSON.parse(message.body);
-          onAlert(alert);
-        } catch (err) {
-          console.error('[Alerts] Parse error:', err);
+      onConnect?.();
+
+      client.subscribe(
+        "/topic/alerts",
+        (message) => {
+          try {
+            const alert: Alert =
+              JSON.parse(message.body);
+
+            onAlert(alert);
+
+          } catch {
+            // ignore malformed payload
+          }
         }
-      });
+      );
+
+      client.subscribe(
+        "/topic/alerts/delete",
+        () => {
+          // optional delete event
+        }
+      );
     },
 
-    onStompError: (frame) => {
-      console.error('[Alerts] STOMP error:', frame);
-      onError?.(new Error('STOMP connection failed'));
+    onWebSocketClose: () => {
+      onDisconnect?.();
+    },
+
+    onWebSocketError: () => {
+      onError?.(
+        new Error(
+          "WebSocket connection failed"
+        )
+      );
+    },
+
+    onStompError: () => {
+      onError?.(
+        new Error("STOMP error")
+      );
     },
   });
 
   client.activate();
 
   return () => {
-    client.deactivate();
+    if (client.active) {
+      client.deactivate();
+    }
+
+    onDisconnect?.();
   };
 }
-}
+};

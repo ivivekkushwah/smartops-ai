@@ -1,0 +1,14 @@
+# IntelliJ
+.idea/
+
+# Mac
+.DS_Store
+
+# Backend
+target/
+*.log
+
+# Frontend
+node_modules/
+.next/
+.env
