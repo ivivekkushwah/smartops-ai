@@ -1,7 +1,9 @@
 package com.smartops.auth.service;
 
 import com.smartops.auth.dto.RegisterRequest;
+import com.smartops.auth.dto.UpdateUserSettingsRequest;
 import com.smartops.auth.dto.UserResponse;
+import com.smartops.auth.dto.UserSettingsResponse;
 import com.smartops.auth.model.Role;
 import com.smartops.common.event.LogEvent;
 import com.smartops.auth.kafka.KafkaProducerService;
@@ -105,5 +107,56 @@ public class AuthServiceImpl implements AuthService {
         response.setCreatedAt(user.getCreatedAt());
 
         return response;
+    }
+
+    @Override
+    public UserSettingsResponse getSettings(String userId) {
+
+        User user = userRepository.findById(Long.valueOf(userId))
+                .orElseThrow(() ->
+                        new RuntimeException("User not found"));
+
+        return UserSettingsResponse.builder()
+                .dashboardRefreshRate(user.getDashboardRefreshRate())
+                .emailNotifications(user.getEmailNotifications())
+                .pushNotifications(user.getPushNotifications())
+                .theme(user.getTheme())
+                .build();
+    }
+
+    @Override
+    public UserSettingsResponse updateSettings(
+            String userId,
+            UpdateUserSettingsRequest request
+    ) {
+
+        User user = userRepository.findById(Long.valueOf(userId))
+                .orElseThrow(() ->
+                        new RuntimeException("User not found"));
+
+        user.setDashboardRefreshRate(
+                request.getDashboardRefreshRate()
+        );
+
+        user.setEmailNotifications(
+                request.getEmailNotifications()
+        );
+
+        user.setPushNotifications(
+                request.getPushNotifications()
+        );
+
+        user.setTheme(
+                request.getTheme()
+        );
+
+        User savedUser = userRepository.save(user);
+
+        return UserSettingsResponse.builder()
+                .dashboardRefreshRate(savedUser.getDashboardRefreshRate())
+                .emailNotifications(savedUser.getEmailNotifications())
+                .pushNotifications(savedUser.getPushNotifications())
+                .theme(savedUser.getTheme())
+                .build();
     }
 }

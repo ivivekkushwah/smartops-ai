@@ -1,29 +1,50 @@
 package com.smartops.alert.service;
 
+import com.smartops.alert.model.Alert;
 import com.smartops.alert.model.Insight;
+import com.smartops.alert.repository.AlertRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
-
 @Service
 @RequiredArgsConstructor
 public class InsightService {
 
-    private final List<Insight> insights = new ArrayList<>();
+    private final AlertRepository alertRepository;
     private final InsightPublisher publisher;
-    // ✅ Generate dummy insights (replace with real logic later)
+
     public List<Insight> getInsights() {
-        if (insights.isEmpty()) {
-            insights.add(generateInsight("AUTH-SERVICE latency high", "CRITICAL"));
-            insights.add(generateInsight("CPU usage spike detected", "WARNING"));
-            insights.add(generateInsight("System stable", "INFO"));
-        }
-        return insights;
+
+        List<Alert> alerts = alertRepository.findAll();
+
+        return alerts.stream()
+                .sorted(
+                        Comparator.comparing(Alert::getCreatedAt)
+                                .reversed()
+                )
+                .limit(20)
+                .map(alert ->
+                        Insight.builder()
+                                .id(alert.getId())
+                                .type(alert.getStatus().name())
+                                .severity(alert.getSeverity().name())
+                                .message(
+                                        "[" + alert.getServiceName() + "] "
+                                                + alert.getTitle()
+                                )
+                                .timestamp(alert.getCreatedAt())
+                                .build()
+                )
+                .toList();
     }
 
-    public Insight generateInsight(String message, String severity) {
+    public Insight generateInsight(
+            String message,
+            String severity
+    ) {
+
         Insight insight = Insight.builder()
                 .id(UUID.randomUUID().toString())
                 .type("ANOMALY")
@@ -32,9 +53,6 @@ public class InsightService {
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        insights.add(0, insight);
-
-        // 🔴 send to WebSocket
         publisher.publishInsight(insight);
 
         return insight;

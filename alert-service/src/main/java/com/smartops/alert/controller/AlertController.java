@@ -68,7 +68,7 @@ public class AlertController {
     // RESOLVE ALERT
     // =========================
 
-    @PatchMapping("/{id}/resolve")
+    @PutMapping("/{id}/resolve")
     public AlertResponse resolveAlert(
             @PathVariable String id
     ) {

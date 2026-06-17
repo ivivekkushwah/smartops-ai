@@ -5,7 +5,6 @@ import { Brain } from 'lucide-react';
 import { SectionHeader } from '@/components/shared/section-header';
 import { useInsights } from '@/hooks/use-insights';
 
-// ✅ Safe severity config (UI-only, acceptable)
 const severityConfig: Record<string, any> = {
   critical: {
     bg: 'linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(139, 92, 246, 0.05))',
@@ -33,10 +32,8 @@ const severityConfig: Record<string, any> = {
 export default function AIInsightsPage() {
   const { insights, loading, error } = useInsights();
 
-  // ✅ dynamic badge
   const activeCount = insights.length;
 
-  // ✅ loading state
   if (loading) {
     return (
       <div className="p-4 text-sm text-text2">
@@ -45,7 +42,6 @@ export default function AIInsightsPage() {
     );
   }
 
-  // ✅ error state
   if (error) {
     return (
       <div className="p-4 text-sm text-red-500">
@@ -56,7 +52,6 @@ export default function AIInsightsPage() {
 
   return (
     <div className="p-4 space-y-6">
-      {/* ================= HEADER ================= */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -69,28 +64,29 @@ export default function AIInsightsPage() {
         />
       </motion.div>
 
-      {/* ================= INSIGHTS LIST ================= */}
       <div className="space-y-4">
         {insights.map((insight, index) => {
-          // ✅ safe severity handling
-          const severityKey = insight.severity?.toLowerCase() || 'info';
+          const severityKey =
+            insight.severity?.toLowerCase() || 'info';
+
           const config =
-            severityConfig[severityKey] || severityConfig.info;
+            severityConfig[severityKey] ||
+            severityConfig.info;
 
           return (
             <motion.div
-              key={insight.id || index}
+              key={insight.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="p-4 rounded-xl border"
+              className="p-5 rounded-xl border"
               style={{
                 background: config.bg,
                 borderColor: config.border,
               }}
             >
-              {/* TOP ROW */}
-              <div className="flex items-center justify-between mb-2">
+              {/* HEADER */}
+              <div className="flex items-center justify-between mb-3">
                 <span
                   className="text-2xs px-2 py-1 rounded-md font-semibold"
                   style={{
@@ -102,30 +98,93 @@ export default function AIInsightsPage() {
                 </span>
 
                 <span className="text-2xs text-text3 font-mono">
-                  {new Date(insight.timestamp).toLocaleTimeString()}
+                  {new Date(
+                    insight.createdAt
+                  ).toLocaleString()}
                 </span>
               </div>
 
-              {/* MESSAGE */}
-              <p className="text-sm text-text1 font-medium">
-                {insight.message}
-              </p>
-
-              {/* TYPE / SOURCE */}
-              {insight.type && (
-                <p className="text-xs text-text3 mt-1">
-                  {insight.type}
+              {/* SERVICE */}
+              <div className="mb-3">
+                <p className="text-xs text-text3 uppercase tracking-wide">
+                  Service
                 </p>
-              )}
+
+                <p className="text-sm font-semibold text-text1">
+                  {insight.serviceName}
+                </p>
+              </div>
+
+              {/* SUMMARY */}
+              <div className="mb-4">
+                <p className="text-xs font-semibold text-text2 mb-1">
+                  Summary
+                </p>
+
+                <p className="text-sm text-text1">
+                  {insight.summary}
+                </p>
+              </div>
+
+              {/* ROOT CAUSE */}
+              <div className="mb-4">
+                <p className="text-xs font-semibold text-text2 mb-1">
+                  Root Cause
+                </p>
+
+                <p className="text-sm text-text1">
+                  {insight.rootCause}
+                </p>
+              </div>
+
+              {/* IMPACT */}
+              <div className="mb-4">
+                <p className="text-xs font-semibold text-text2 mb-1">
+                  Impact
+                </p>
+
+                <p className="text-sm text-text1">
+                  {insight.impact}
+                </p>
+              </div>
+
+              {/* RECOMMENDATION */}
+              <div className="mb-4">
+                <p className="text-xs font-semibold text-text2 mb-1">
+                  Recommendation
+                </p>
+
+                <p className="text-sm text-text1">
+                  {insight.recommendation}
+                </p>
+              </div>
+
+              {/* CONFIDENCE */}
+              <div className="flex items-center justify-between pt-3 border-t border-white/10">
+                <span className="text-xs text-text3">
+                  AI Confidence
+                </span>
+
+                <span className="text-xs px-2 py-1 rounded-md bg-primary/10 text-primary font-medium">
+                  {insight.confidence ?? 0}%
+                </span>
+              </div>
             </motion.div>
           );
         })}
       </div>
 
-      {/* EMPTY STATE */}
       {insights.length === 0 && (
-        <div className="text-center text-sm text-text3 py-10">
-          No insights available
+        <div className="text-center py-12">
+          <Brain className="w-10 h-10 mx-auto mb-3 text-text3" />
+
+          <p className="text-sm text-text2">
+            No AI insights generated yet
+          </p>
+
+          <p className="text-xs text-text3 mt-1">
+            Insights will appear when alerts are analyzed
+          </p>
         </div>
       )}
     </div>

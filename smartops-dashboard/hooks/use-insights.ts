@@ -1,12 +1,18 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 import { insightService } from '@/services/insight-service';
 
 export interface Insight {
   id: string;
-  type: string;
-  message: string;
+  serviceName: string;
   severity: string;
-  timestamp: string;
+  summary: string;
+  rootCause: string;
+  impact: string;
+  recommendation: string;
+  confidence: number;
+  createdAt: string;
 }
 
 export function useInsights() {
@@ -15,24 +21,21 @@ export function useInsights() {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // ✅ initial API load
-    insightService
-      .getInsights()
-      .then(setInsights)
-      .catch((err) =>
-        setError(err instanceof Error ? err : new Error('Failed'))
-      )
-      .finally(() => setLoading(false));
+    loadInsights();
 
-    // ✅ real-time updates
     const unsubscribe = insightService.subscribeToInsights(
-      (insight) => {
-        setInsights((prev) => {
-  const exists = prev.some((i) => i.id === insight.id);
-  if (exists) return prev; 
+      (insight: Insight) => {
+        setInsights(prev => {
+          const exists = prev.some(i => i.id === insight.id);
 
-  return [insight, ...prev];
-});
+          if (exists) {
+            return prev.map(i =>
+              i.id === insight.id ? insight : i
+            );
+          }
+
+          return [insight, ...prev];
+        });
       },
       (err) => setError(err)
     );
@@ -40,5 +43,28 @@ export function useInsights() {
     return unsubscribe;
   }, []);
 
-  return { insights, loading, error };
+  const loadInsights = async () => {
+    try {
+      setLoading(true);
+
+      const data = await insightService.getInsights();
+
+      setInsights(data);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err
+          : new Error('Failed to load insights')
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    insights,
+    loading,
+    error,
+    refresh: loadInsights,
+  };
 }

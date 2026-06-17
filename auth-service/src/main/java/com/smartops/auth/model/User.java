@@ -46,5 +46,13 @@ public class User {
     @PreUpdate
     protected void onUpdate() {this.updatedAt = LocalDateTime.now();}
 
+    private Integer dashboardRefreshRate = 5;
+
+    private Boolean emailNotifications = true;
+
+    private Boolean pushNotifications = true;
+
+    private String theme = "dark";
+
 
 }

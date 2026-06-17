@@ -78,14 +78,14 @@ export const dashboardService = {
   // ❌ WRONG (no such route)
   // 👉 REMOVE or FIX
   async getWeeklyMetrics() {
-    const res = await api.get(
-      '/api/monitor/services/requests/metrics', // ❌ WRONG STRUCTURE
-      {
-        params: { timeRange: 'week' },
-      }
-    )
-    return res.data
-  },
+  const res = await api.get(
+    '/api/monitor/metrics/requests',
+    {
+      params: { timeRange: 'week' },
+    }
+  )
+  return res.data
+},
 
   // ✅ CORRECT
   async getServiceStats() {

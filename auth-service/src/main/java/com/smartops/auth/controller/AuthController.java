@@ -2,16 +2,18 @@ package com.smartops.auth.controller;
 
 
 
-import com.smartops.auth.dto.LoginRequest;
-import com.smartops.auth.dto.RegisterRequest;
+import com.smartops.auth.dto.*;
 import com.smartops.auth.security.JwtUtil;
 import com.smartops.auth.service.AuthService;
+import com.smartops.auth.service.ProfileService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -22,7 +24,9 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
-    private final JwtUtil jwtUtil;
+
+    private final ProfileService profileService;
+
 
     // ==========================================
     // CURRENT USER
@@ -107,4 +111,20 @@ public class AuthController {
                 Map.of("message", "Logged out successfully")
         );
     }
+    @GetMapping("/settings")
+    public UserSettingsResponse getSettings(
+            @RequestHeader("X-User-Id") String userId
+    ) {
+        return authService.getSettings(userId);
+    }
+
+    @PutMapping("/settings")
+    public UserSettingsResponse updateSettings(
+            @RequestHeader("X-User-Id") String userId,
+            @RequestBody UpdateUserSettingsRequest request
+    ) {
+        return authService.updateSettings(userId, request);
+    }
+
+
 }
