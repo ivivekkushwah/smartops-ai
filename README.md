@@ -1,166 +1,285 @@
 # 🚀 SmartOps AI
 
-An **AI-powered distributed system monitoring and incident management platform** designed to track microservices health, stream real-time logs, and detect anomalies in a scalable architecture.
+An AI-powered observability and incident management platform built using Spring Boot Microservices, Apache Kafka, Gemini AI, MongoDB, MySQL, and Next.js.
+
+SmartOps AI helps DevOps teams and developers monitor distributed systems, analyze incidents, generate intelligent insights, and visualize service health through a modern real-time dashboard.
 
 ---
 
-## 📌 Overview
+# 📌 Overview
 
-SmartOps AI is a full-stack enterprise-grade system that helps developers and DevOps teams:
+SmartOps AI is a full-stack enterprise-grade platform designed to:
 
-* Monitor distributed microservices
-* Stream logs in real-time
-* Detect failures and anomalies
-* Manage alerts efficiently
+* Monitor microservice health in real-time
+* Collect and stream application logs
+* Detect service failures and anomalies
+* Generate alerts automatically
+* Analyze incidents using Gemini AI
+* Provide root-cause analysis and recommendations
+* Visualize operational metrics through analytics dashboards
 
-The system follows a **microservices architecture** with centralized authentication and event-driven communication.
+The platform follows an event-driven microservices architecture using Apache Kafka and Spring Cloud.
 
 ---
 
-## 🧩 Tech Stack
+# 🧩 Tech Stack
 
-### 🔹 Backend
+## Backend
 
-* Java 17
-* Spring Boot (Microservices)
-* Spring Cloud (Eureka, API Gateway)
-* Spring Security (JWT Authentication)
-* Apache Kafka (Event Streaming)
-* WebSocket (Real-time communication)
-* MongoDB (Logs & Monitoring Data)
-* MySQL (User Authentication)
+* Java 21
+* Spring Boot 3.5
+* Spring Cloud Gateway
+* Eureka Service Discovery
+* Spring Security
+* JWT Authentication
+* Apache Kafka
+* MongoDB
+* MySQL
+* WebSocket
+* Gemini AI API
+* Maven
 
-### 🔹 Frontend
+## Frontend
 
-* Next.js 15 (App Router)
+* Next.js 15
+* React
 * TypeScript
 * Tailwind CSS
-* shadcn/ui
-* WebSocket Client Integration
+* Framer Motion
+* Recharts
+* Axios
 
-### 🔹 DevOps & Tools
+## DevOps & Tools
 
-* Docker & Docker Compose
+* Docker
+* Docker Compose
 * Git & GitHub
-* Postman (API Testing)
+* Postman
+* MongoDB Compass
 
 ---
 
-## 🏗️ System Architecture
+# 🏗️ System Architecture
 
-### 🔹 Core Components
+```text
+                    ┌─────────────────┐
+                    │     Frontend    │
+                    │   Next.js App   │
+                    └────────┬────────┘
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │   API Gateway   │
+                    │ JWT Validation  │
+                    └────────┬────────┘
+                             │
+       ┌─────────────────────┼─────────────────────┐
+       ▼                     ▼                     ▼
 
-* **API Gateway**
-
-  * Central entry point
-  * Handles JWT authentication
-  * Routes requests to services
-
-* **Service Registry (Eureka)**
-
-  * Enables service discovery
-  * Dynamic service registration
-
-* **Auth Service**
-
-  * User login & registration
-  * JWT token generation
-
-* **Monitoring Service**
-
-  * Collects logs from services
-  * Stores logs in MongoDB
-  * Streams logs via WebSocket
-
-* **Alert Service**
-
-  * Generates alerts based on conditions
-  * Notifies system on anomalies
-
-* **Kafka**
-
-  * Event-driven communication between services
-  * Decouples system components
-
-* **Frontend Dashboard**
-
-  * Displays logs in real-time
-  * Shows system health & alerts
-
----
-
-## 📁 Project Structure
-
-```
-smartops-ai/
-├── api-gateway/
-├── auth-service/
-├── monitoring-service/
-├── alert-service/
-├── service-registry/
-├── smartops-dashboard/
-└── docker-compose.yml
+┌─────────────┐    ┌────────────────┐    ┌────────────────┐
+│ Auth Service│    │ Monitoring Svc │    │ Alert Service  │
+└─────────────┘    └────────────────┘    └────────────────┘
+                          │
+                          ▼
+                    Apache Kafka
+                          │
+                          ▼
+                  ┌───────────────┐
+                  │ Insight Svc   │
+                  │ Gemini AI     │
+                  └───────┬───────┘
+                          │
+                          ▼
+                    MongoDB Atlas
 ```
 
 ---
 
-## 🔐 Key Features
+# 📦 Microservices
 
-* ✅ JWT-based Authentication via API Gateway
-* ✅ Role-based access control (extendable)
-* ✅ Real-time log streaming using WebSockets
-* ✅ Kafka-based asynchronous communication
-* ✅ Centralized service monitoring
-* ✅ Alert generation system
-* ✅ Scalable microservices architecture
+## 🔐 Auth Service
 
----
+Responsible for:
 
-## ⚙️ How to Run the Project
-
-### 🔹 Prerequisites
-
-* Java 17
-* Node.js (v18+)
-* Docker (optional but recommended)
-* MongoDB & MySQL running locally
+* User Registration
+* User Login
+* JWT Token Generation
+* Profile Management
+* Password Updates
 
 ---
 
-### 🔹 Run Backend Services
+## 🌐 API Gateway
 
-Start services in the following order:
+Responsible for:
 
-1. **Service Registry**
+* Centralized Routing
+* JWT Validation
+* Request Filtering
+* Service Communication
+
+---
+
+## 📡 Monitoring Service
+
+Responsible for:
+
+* Service Health Monitoring
+* Log Collection
+* Response Time Tracking
+* Kafka Log Publishing
+* Real-time Metrics Collection
+
+---
+
+## 🚨 Alert Service
+
+Responsible for:
+
+* Alert Generation
+* Incident Tracking
+* Severity Classification
+* Kafka Event Publishing
+
+---
+
+## 🤖 Insight Service
+
+Responsible for:
+
+* Consuming Alert Events
+* Gemini AI Integration
+* Root Cause Analysis
+* Impact Assessment
+* AI Recommendations
+* Confidence Scoring
+
+---
+
+## 🔍 Eureka Service Registry
+
+Responsible for:
+
+* Service Discovery
+* Dynamic Registration
+* Load-balanced Communication
+
+---
+
+# ✨ Key Features
+
+* ✅ JWT Authentication
+* ✅ Profile Management
+* ✅ Microservices Architecture
+* ✅ Service Discovery using Eureka
+* ✅ API Gateway Security
+* ✅ Apache Kafka Event Streaming
+* ✅ Real-time Monitoring
+* ✅ Alert Management System
+* ✅ Gemini AI Integration
+* ✅ AI-powered Incident Analysis
+* ✅ Analytics Dashboard
+* ✅ Responsive UI
+* ✅ Scalable Architecture
+
+---
+
+# 📊 Dashboard Modules
+
+## Dashboard
+
+* Service Overview
+* System Health
+* Response Time Metrics
+* Availability Metrics
+
+## Monitoring
+
+* Service Status Tracking
+* Response Time Monitoring
+* Log Collection
+
+## Analytics
+
+* Availability Percentage
+* Response Time Analytics
+* Service Health Metrics
+* Operational Insights
+
+## AI Insights
+
+* Root Cause Analysis
+* Impact Assessment
+* AI Recommendations
+* Confidence Scoring
+
+## Profile Management
+
+* User Information
+* Password Management
+* Account Settings
+
+---
+
+# ⚙️ Running the Project
+
+## Prerequisites
+
+* Java 21
+* Node.js 20+
+* MongoDB
+* MySQL
+* Apache Kafka
+* Zookeeper
+* Maven
+
+---
+
+## Start Infrastructure
+
+### Eureka Server
 
 ```bash
 cd service-registry
-./mvnw spring-boot:run
+mvn spring-boot:run
 ```
 
-2. **API Gateway**
+### API Gateway
 
 ```bash
 cd api-gateway
-./mvnw spring-boot:run
+mvn spring-boot:run
 ```
 
-3. **Other Services**
+### Auth Service
 
 ```bash
 cd auth-service
-./mvnw spring-boot:run
-
-cd monitoring-service
-./mvnw spring-boot:run
-
-cd alert-service
-./mvnw spring-boot:run
+mvn spring-boot:run
 ```
 
----
+### Monitoring Service
 
-### 🔹 Run Frontend
+```bash
+cd monitoring-service
+mvn spring-boot:run
+```
+
+### Alert Service
+
+```bash
+cd alert-service
+mvn spring-boot:run
+```
+
+### Insight Service
+
+```bash
+cd insight-service
+mvn spring-boot:run
+```
+
+### Frontend
 
 ```bash
 cd smartops-dashboard
@@ -168,56 +287,43 @@ npm install
 npm run dev
 ```
 
-Frontend will run on:
-👉 http://localhost:3000
+---
+
+# 🔄 Workflow
+
+1. User logs in using JWT Authentication
+2. API Gateway validates tokens
+3. Monitoring Service collects service health data
+4. Logs are streamed through Kafka
+5. Alert Service generates incidents
+6. Insight Service consumes alerts
+7. Gemini AI analyzes incidents
+8. AI Insights are stored in MongoDB
+9. Dashboard visualizes operational data
 
 ---
 
-### 🔹 Run with Docker (Optional)
+# 🎯 Project Highlights
 
-```bash
-docker-compose up --build
-```
-
----
-
-## 🔄 Workflow
-
-1. User logs in → JWT generated
-2. Requests go through API Gateway
-3. Services communicate via Kafka
-4. Logs are sent to Monitoring Service
-5. WebSocket streams logs to frontend
-6. Alerts generated if anomalies detected
+* Enterprise-grade Microservices Architecture
+* Event-Driven Communication using Kafka
+* AI-powered Incident Analysis
+* Real-time Monitoring Dashboard
+* Centralized Authentication
+* Scalable Cloud-ready Design
 
 ---
 
-## 📊 Future Enhancements
+# 👨‍💻 Author
 
-* 🤖 AI-based anomaly detection (Gemini / ML integration)
-* 📈 Advanced analytics dashboard
-* 🔔 Notification system (Email/SMS)
-* 👥 Role-based access control (Admin/User)
-* ☁️ Cloud deployment (AWS/GCP)
+Vivek Kushwaha
 
----
+GitHub:
+https://github.com/ivivekkushwah
 
-## 🧠 Key Learnings
+LinkedIn:
+https://www.linkedin.com/in/ivivekkushwaha
 
-* Microservices architecture design
-* Event-driven systems using Kafka
-* Real-time communication using WebSockets
-* Secure API design with JWT
-* Scalable system architecture
-
----
-
-## 📬 Contact
-
-**Vivek Kushwaha**
-
-* GitHub: https://github.com/ivivekkushwah
-* LinkedIn: www.linkedin.com/in/ivivekkushwaha
 
 ---
 
