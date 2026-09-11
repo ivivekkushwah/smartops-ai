@@ -78,7 +78,7 @@ export function ServiceCard({ name, status, metrics, port, index = 0 }: ServiceC
                   className="h-full rounded-sm transition-all"
                   style={{
                     width: `${metric.value}%`,
-                    backgroundColor: metric.value > 80 ? 'var(--amber)' : 'var(--green)',
+                    backgroundColor: typeof metric.value === 'number' && metric.value > 80 ? 'var(--amber)' : 'var(--green)',
                   }}
                 />
               </div>

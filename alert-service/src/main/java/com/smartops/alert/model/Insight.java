@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 public class Insight {
 
     private String id;
+    private String userId;
     private String type;       // ANOMALY, PERFORMANCE, ERROR
     private String message;
     private String severity;   // CRITICAL, WARNING, INFO

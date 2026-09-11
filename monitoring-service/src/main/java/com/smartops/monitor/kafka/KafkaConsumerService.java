@@ -24,6 +24,11 @@ public class KafkaConsumerService {
     )
     public void consume(LogEvent event) {
 
+        if (event.getUserId() == null || event.getUserId().isBlank()) {
+            log.warn("Discarding ownerless log event from {}", event.getServiceName());
+            return;
+        }
+
         // Console Output
         System.out.println("================================");
         System.out.println("SERVICE : " + event.getServiceName());
@@ -38,6 +43,6 @@ public class KafkaConsumerService {
         // Send live log via WebSocket
         webSocketLogService.sendLog(savedLog);
 
-        log.info("Log saved and broadcasted successfully");
+        log.info("Tenant log saved and broadcasted successfully");
     }
 }

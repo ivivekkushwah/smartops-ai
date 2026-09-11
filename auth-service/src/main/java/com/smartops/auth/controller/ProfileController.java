@@ -7,6 +7,7 @@ import com.smartops.auth.dto.ProfileResponse;
 import com.smartops.auth.service.ProfileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/auth/profile")
@@ -25,7 +26,7 @@ public class ProfileController {
     @PutMapping
     public ProfileResponse updateProfile(
             @RequestHeader("X-User-Id") Long userId,
-            @RequestBody ProfileRequest request
+            @Valid @RequestBody ProfileRequest request
     ) {
         return profileService.updateProfile(userId, request);
     }
@@ -33,7 +34,7 @@ public class ProfileController {
     @PutMapping("/change-password")
     public String changePassword(
             @RequestHeader("X-User-Id") Long userId,
-            @RequestBody ChangePasswordRequest request
+            @Valid @RequestBody ChangePasswordRequest request
     ) {
         profileService.changePassword(userId, request);
 

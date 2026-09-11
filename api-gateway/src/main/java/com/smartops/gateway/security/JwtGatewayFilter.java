@@ -1,9 +1,6 @@
 package com.smartops.gateway.security;
 
 import com.smartops.gateway.kafka.KafkaProducerService;
-import jakarta.ws.rs.HttpMethod;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.http.HttpCookie;
@@ -14,24 +11,22 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-@RequiredArgsConstructor
 @Component
 public class JwtGatewayFilter implements GlobalFilter {
 
-    @Autowired
-    private JwtUtil jwtUtil;
+    private final JwtUtil jwtUtil;
 
     private final KafkaProducerService producer;
+
+    public JwtGatewayFilter(JwtUtil jwtUtil, KafkaProducerService producer) {
+        this.jwtUtil = jwtUtil;
+        this.producer = producer;
+    }
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
 
         ServerHttpRequest request = exchange.getRequest();
-        producer.sendLog(
-                "GATEWAY",
-                "INFO",
-                "Incoming request: " + request.getMethod() + " " + request.getURI()
-        );
         String path = request.getURI().getPath();
 
         System.out.println("👉 Incoming Request: " + path);
@@ -62,11 +57,13 @@ public class JwtGatewayFilter implements GlobalFilter {
                 producer.sendLog(
                         "GATEWAY",
                         "INFO",
-                        "User " + userId + " called: " + request.getURI()
+                        "User called: " + request.getMethod() + " " + request.getURI().getPath(),
+                        userId
                 );
                 System.out.println("✅ Extracted userId: " + userId);
 
                 ServerHttpRequest modifiedRequest = request.mutate()
+                        .headers(headers -> headers.remove("X-User-Id"))
                         .header("X-User-Id", userId)
                         .build();
                 exchange.getResponse().beforeCommit(() -> {
@@ -74,7 +71,8 @@ public class JwtGatewayFilter implements GlobalFilter {
                     producer.sendLog(
                             "GATEWAY",
                             "INFO",
-                            "Response: " + exchange.getResponse().getStatusCode()
+                            "Response: " + exchange.getResponse().getStatusCode(),
+                            userId
                     );
 
                     return Mono.empty();
@@ -83,20 +81,13 @@ public class JwtGatewayFilter implements GlobalFilter {
             }
         } catch (Exception e) {
 
-            producer.sendLog(
-                    "GATEWAY",
-                    "ERROR",
-                    "Error processing request: " + request.getURI()
-            );
             System.out.println("❌ JWT ERROR: " + e.getMessage());
         }
-        System.out.println("🔥 JWT FILTER HIT");
-        System.out.println("PATH: " + path);
-        System.out.println("COOKIE: " + cookie);
-
-        System.out.println("➡️ Forwarding request WITHOUT JWT");
-        return chain.filter(exchange);
+        // Every route after the public login/register endpoints is authenticated.
+        // Do not forward an unauthenticated request with a caller-controlled
+        // X-User-Id header to downstream services.
+        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+        return exchange.getResponse().setComplete();
     }
 
 }
-

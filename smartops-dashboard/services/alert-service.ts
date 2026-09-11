@@ -3,7 +3,7 @@ import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 
 // =========================
-// TYPES (FIXED)
+// TYPES
 // =========================
 
 export interface Alert {
@@ -11,12 +11,13 @@ export interface Alert {
   title: string;
   message: string;
 
-  severity: "CRITICAL" | "WARNING" | "INFO"; // ✅ FIXED
-  status: "ACTIVE" | "RESOLVED" | "ACKNOWLEDGED"; // ✅ FIXED
+  severity: "CRITICAL" | "WARNING" | "INFO";
+  status: "ACTIVE" | "RESOLVED" | "ACKNOWLEDGED";
 
   serviceName: string;
+  userId: string;
 
-  createdAt: string; // ✅ FIXED (NOT timestamp)
+  createdAt: string;
 
   resolvedAt?: string;
   acknowledgedAt?: string;
@@ -29,7 +30,7 @@ export interface AlertStats {
   total: number;
   resolved: number;
   active: number;
-  acknowledged: number
+  acknowledged: number;
 }
 
 export interface AlertFilter {
@@ -44,127 +45,243 @@ export interface AlertFilter {
 // =========================
 
 export const alertService = {
+
   // =========================
-  // API METHODS
+  // GET ALL ALERTS
   // =========================
 
-  async getAlerts(filter?: AlertFilter): Promise<Alert[]> {
+  async getAlerts(
+    filter?: AlertFilter
+  ): Promise<Alert[]> {
+
     const response = await api.get("/api/alerts", {
       params: filter,
     });
+
     return response.data;
   },
 
-  async getActiveAlerts(): Promise<Alert[]> {
-    const response = await api.get("/api/alerts/active");
-    return response.data;
-  },
-
-  async getCriticalAlerts(): Promise<Alert[]> {
-    const response = await api.get("/api/alerts/critical");
-    return response.data;
-  },
-
-  async getAlertStats(): Promise<AlertStats> {
-    const response = await api.get("/api/alerts/stats");
-    return response.data;
-  },
-
-  async acknowledgeAlert(alertId: string): Promise<Alert> {
-    const response = await api.put(
-      `/api/alerts/${alertId}/acknowledge`
-    );
-    return response.data;
-  },
-
-  async resolveAlert(alertId: string): Promise<Alert> {
-    const response = await api.put(
-      `/api/alerts/${alertId}/resolve`
-    );
-    return response.data;
-  },
-
-  async deleteAlert(alertId: string): Promise<void> {
-    await api.delete(`/api/alerts/${alertId}`);
-  },
 
   // =========================
-  // WEBSOCKET (FULL FIX)
+  // GET ACTIVE ALERTS
+  // =========================
+
+  async getActiveAlerts(): Promise<Alert[]> {
+
+    const response = await api.get(
+      "/api/alerts/active",
+    );
+
+    return response.data;
+  },
+
+
+  // =========================
+  // GET CRITICAL ALERTS
+  // =========================
+
+  async getCriticalAlerts(): Promise<Alert[]> {
+
+    const response = await api.get(
+      "/api/alerts/critical",
+    );
+
+    return response.data;
+  },
+
+
+  // =========================
+  // GET ALERT STATS
+  // =========================
+
+  async getAlertStats(): Promise<AlertStats> {
+
+    const response = await api.get(
+      "/api/alerts/stats",
+    );
+
+    return response.data;
+  },
+
+
+  // =========================
+  // ACKNOWLEDGE ALERT
+  // =========================
+
+  async acknowledgeAlert(alertId: string): Promise<Alert> {
+
+    const response = await api.put(
+      `/api/alerts/${alertId}/acknowledge`,
+      null
+    );
+
+    return response.data;
+  },
+
+
+  // =========================
+  // RESOLVE ALERT
+  // =========================
+
+  async resolveAlert(alertId: string): Promise<Alert> {
+
+    const response = await api.put(
+      `/api/alerts/${alertId}/resolve`,
+      null
+    );
+
+    return response.data;
+  },
+
+
+  // =========================
+  // DELETE ALERT
+  // =========================
+
+  async deleteAlert(alertId: string): Promise<void> {
+
+    await api.delete(
+      `/api/alerts/${alertId}`
+    );
+  },
+
+
+  // =========================
+  // WEBSOCKET
   // =========================
 
   subscribeToAlerts(
+  userId: string,
   onAlert: (alert: Alert) => void,
+  onDelete?: (alertId: string) => void,
   onError?: (error: Error) => void,
   onConnect?: () => void,
   onDisconnect?: () => void
 ): () => void {
+  return alertSocket.subscribe(userId, onAlert, onDelete, onError, onConnect, onDisconnect);
+},
+};
 
-  const wsUrl =
-    process.env.NEXT_PUBLIC_WS_URL ||
-    "http://localhost:8084/ws";
+type AlertListener = {
+  onAlert: (alert: Alert) => void;
+  onDelete?: (alertId: string) => void;
+  onError?: (error: Error) => void;
+  onConnect?: () => void;
+  onDisconnect?: () => void;
+};
 
-  const client = new Client({
-    webSocketFactory: () =>
-      new SockJS(wsUrl),
+class AlertSocket {
+  private client: Client | null = null;
+  private userId: string | null = null;
+  private listeners = new Set<AlertListener>();
+  private subscriptions: { unsubscribe: () => void }[] = [];
+
+  subscribe(
+    userId: string,
+    onAlert: (alert: Alert) => void,
+    onDelete?: (alertId: string) => void,
+    onError?: (error: Error) => void,
+    onConnect?: () => void,
+    onDisconnect?: () => void,
+  ): () => void {
+    const listener = { onAlert, onDelete, onError, onConnect, onDisconnect };
+    this.listeners.add(listener);
+
+    if (this.userId !== userId) {
+      this.disconnect();
+      this.userId = userId;
+      this.connect();
+    } else if (this.client?.connected) {
+      onConnect?.();
+    }
+
+    return () => {
+      this.listeners.delete(listener);
+      if (this.listeners.size === 0) this.disconnect();
+    };
+  }
+
+  private connect(): void {
+    const userId = this.userId;
+    if (!userId || this.client?.active) return;
+
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:8080/ws";
+    const client = new Client({
+    webSocketFactory: () => new SockJS(wsUrl),
 
     reconnectDelay: 10000,
 
     debug: () => {},
 
     onConnect: () => {
+      if (this.client !== client || this.userId !== userId) return;
+      this.listeners.forEach((listener) => listener.onConnect?.());
 
-      onConnect?.();
-
-      client.subscribe(
-        "/topic/alerts",
+      this.subscriptions = [client.subscribe(
+        `/topic/alerts/${userId}`,
         (message) => {
+          const body = message.body?.trim();
+          if (!body) return;
+
+          if (!body || this.client !== client) return;
+
           try {
-            const alert: Alert =
-              JSON.parse(message.body);
+            const alert: Alert = JSON.parse(body);
 
-            onAlert(alert);
-
-          } catch {
-            // ignore malformed payload
+            if (alert.userId !== userId) return;
+            this.listeners.forEach((listener) => listener.onAlert(alert));
+          } catch (error) {
+            console.warn("Ignoring invalid alert WebSocket payload", error);
           }
         }
-      );
+      ),
 
       client.subscribe(
-        "/topic/alerts/delete",
-        () => {
-          // optional delete event
+        `/topic/alerts/delete/${userId}`,
+        (message) => {
+          const body = message.body?.trim();
+
+          if (!body || this.client !== client) return;
+
+          try {
+            const data = JSON.parse(body);
+
+            if (!data?.id) return;
+
+            this.listeners.forEach((listener) => listener.onDelete?.(data.id));
+          } catch (error) {
+            console.warn("Ignoring invalid alert delete WebSocket payload", error);
+          }
         }
-      );
+      )];
     },
 
     onWebSocketClose: () => {
-      onDisconnect?.();
+      if (this.client !== client) return;
+      this.listeners.forEach((listener) => listener.onDisconnect?.());
     },
 
     onWebSocketError: () => {
-      onError?.(
-        new Error(
-          "WebSocket connection failed"
-        )
-      );
+      if (this.client === client) this.listeners.forEach((listener) => listener.onError?.(new Error("Alert WebSocket connection failed")));
     },
 
     onStompError: () => {
-      onError?.(
-        new Error("STOMP error")
-      );
+      if (this.client === client) this.listeners.forEach((listener) => listener.onError?.(new Error("Alert STOMP error")));
     },
   });
 
-  client.activate();
+    this.client = client;
+    client.activate();
+  }
 
-  return () => {
-    if (client.active) {
-      client.deactivate();
-    }
-
-    onDisconnect?.();
-  };
+  private disconnect(): void {
+    this.subscriptions.forEach((subscription) => subscription.unsubscribe());
+    this.subscriptions = [];
+    const client = this.client;
+    this.client = null;
+    this.userId = null;
+    if (client?.active) void client.deactivate();
+  }
 }
-};
+
+const alertSocket = new AlertSocket();

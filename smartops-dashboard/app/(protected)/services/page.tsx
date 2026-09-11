@@ -239,7 +239,7 @@ export default function ServicesPage() {
     duration-300
   "
 >
-  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 bg-gradient-to-r from-blue-500/5 via-transparent to-cyan-500/5 pointer-events-none" />
+  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 bg-linear-to-r from-blue-500/5 via-transparent to-cyan-500/5 pointer-events-none" />
 
   <div className="relative flex items-start justify-between gap-4">
 

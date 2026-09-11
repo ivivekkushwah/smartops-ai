@@ -47,7 +47,7 @@ export function LogStream() {
       <div className="max-h-[400px] overflow-y-auto space-y-2 p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-card [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-lg">
         <AnimatePresence>
           {logs.map((log) => {
-            const style = levelStyles[log.level];
+            const style = levelStyles[log.level.toLowerCase() as keyof typeof levelStyles] ?? levelStyles.info;
             const Icon = style.icon;
 
             return (
@@ -69,7 +69,7 @@ export function LogStream() {
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground`}>
-                      {log.service}
+                      {log.serviceName}
                     </span>
                     {log.level && (
                       <span className={`text-xs px-2 py-0.5 rounded ${style.bg} ${style.text}`}>

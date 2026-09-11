@@ -19,4 +19,6 @@ public class AlertStatsResponse {
     private long resolved;
 
     private long active;
+
+    private long acknowledged;
 }

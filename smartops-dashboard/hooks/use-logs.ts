@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { logService } from '@/services/log-service';
+import { useAuth } from '@/lib/auth-context';
 
 export interface LogEntry {
   id: string;
@@ -14,6 +15,7 @@ export interface LogEntry {
 }
 
 export function useLogs() {
+  const { user, loading: authLoading } = useAuth();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isConnected, setIsConnected] =
     useState(false);
@@ -22,14 +24,20 @@ export function useLogs() {
     useRef<(() => void) | null>(null);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user?.id) {
+      setLogs([]);
+      setIsConnected(false);
+      return;
+    }
     fetchLogs();
 
-    connectWebSocket();
+    connectWebSocket(user.id);
 
     return () => {
       unsubscribeRef.current?.();
     };
-  }, []);
+  }, [authLoading, user?.id]);
 
   // =========================
   // FETCH INITIAL LOGS
@@ -64,9 +72,10 @@ export function useLogs() {
   // WEBSOCKET CONNECTION
   // =========================
 
-  const connectWebSocket = () => {
+  const connectWebSocket = (userId: string) => {
     const unsubscribe =
       logService.subscribeToLogs(
+        userId,
         (newLog) => {
           setLogs((prev) =>
             [

@@ -73,7 +73,7 @@ export function AlertsPanel() {
         </div>
       </div>
 
-      <div className="max-h-[400px] overflow-y-auto space-y-2 p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-card [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-lg">
+      <div className="max-h-100 overflow-y-auto space-y-2 p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-card [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-lg">
         <AnimatePresence>
           {alerts.length === 0 ? (
             <motion.div
@@ -97,7 +97,7 @@ export function AlertsPanel() {
                   transition={{ duration: 0.2 }}
                   className={`flex items-start gap-3 p-4 rounded-lg border ${style.bg} ${style.border} group`}
                 >
-                  <div className={`h-2 w-2 rounded-full ${style.dot} flex-shrink-0 mt-1.5`} />
+                  <div className={`h-2 w-2 rounded-full ${style.dot} shrink-0 mt-1.5`} />
 
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-foreground text-sm">{alert.title}</h3>
@@ -109,7 +109,7 @@ export function AlertsPanel() {
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => dismissAlert(alert.id)}
-                    className="flex-shrink-0 p-1 hover:bg-muted rounded opacity-0 group-hover:opacity-100 transition-all"
+                    className="shrink-0 p-1 hover:bg-muted rounded opacity-0 group-hover:opacity-100 transition-all"
                   >
                     <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
                   </motion.button>

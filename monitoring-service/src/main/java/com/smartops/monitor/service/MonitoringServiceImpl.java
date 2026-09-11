@@ -1,15 +1,15 @@
 package com.smartops.monitor.service;
 
-import com.smartops.common.event.AlertEvent;
 import com.smartops.monitor.dto.*;
 import com.smartops.monitor.kafka.KafkaProducerService;
 import com.smartops.monitor.model.ServiceStatus;
 import com.smartops.monitor.repository.ServiceStatusRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
 
@@ -22,7 +22,6 @@ import java.util.*;
 public class MonitoringServiceImpl implements MonitoringService {
 
     private final ServiceStatusRepository repository;
-    private final SimpMessagingTemplate messagingTemplate;
     private final KafkaProducerService producer;
 
 
@@ -57,7 +56,8 @@ public class MonitoringServiceImpl implements MonitoringService {
         producer.sendLog(
                 "MONITORING",
                 "INFO",
-                "New service added: " + request.getServiceName()
+                "New service added: " + request.getServiceName(),
+                userId
         );
         return saved;
     }
@@ -72,9 +72,13 @@ public class MonitoringServiceImpl implements MonitoringService {
     }
 
     @Override
-    public ServiceStatus getServiceById(String serviceId) {
-        return repository.findById(serviceId)
-                .orElseThrow(() -> new RuntimeException("Service not found"));
+    public ServiceStatus getServiceById(String serviceId, String userId) {
+        ServiceStatus service = repository.findById(serviceId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found"));
+        if (!userId.equals(service.getUserId())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found");
+        }
+        return service;
     }
 
     // ==========================================
@@ -82,8 +86,8 @@ public class MonitoringServiceImpl implements MonitoringService {
     // ==========================================
 
     @Override
-    public ServiceStatus getServiceHealth(String serviceId) {
-        return getServiceById(serviceId);
+    public ServiceStatus getServiceHealth(String serviceId, String userId) {
+        return getServiceById(serviceId, userId);
     }
 
     // ==========================================
@@ -151,7 +155,7 @@ public class MonitoringServiceImpl implements MonitoringService {
                 .requestThroughput(totalRequests)
                 .errorRate(errorRate)
                 .serviceUptime(100 - errorRate)
-                .kafkaMetrics(getKafkaMetrics())
+                .kafkaMetrics(getKafkaMetrics(userId))
                 .build();
     }
 
@@ -193,10 +197,11 @@ public class MonitoringServiceImpl implements MonitoringService {
     @Override
     public List<PerformanceMetricResponse> getPerformanceMetrics(
             String serviceId,
-            String timeRange
+            String timeRange,
+            String userId
     ) {
 
-        ServiceStatus service = getServiceById(serviceId);
+        ServiceStatus service = getServiceById(serviceId, userId);
 
         List<PerformanceMetricResponse> metrics = List.of(
                 PerformanceMetricResponse.builder()
@@ -205,8 +210,6 @@ public class MonitoringServiceImpl implements MonitoringService {
                         .label(service.getServiceName())
                         .build()
         );
-
-        messagingTemplate.convertAndSend("/topic/metrics", metrics);
 
         return metrics;
     }
@@ -276,8 +279,6 @@ public class MonitoringServiceImpl implements MonitoringService {
                         .activeConnections(activeConnections)
                         .build();
 
-        messagingTemplate.convertAndSend("/topic/realtime", metrics);
-
         return metrics;
     }
 
@@ -286,9 +287,9 @@ public class MonitoringServiceImpl implements MonitoringService {
     // ==========================================
 
     @Override
-    public List<Map<String, Object>> getServiceLogs(String serviceId, int limit) {
+    public List<Map<String, Object>> getServiceLogs(String serviceId, int limit, String userId) {
 
-        ServiceStatus service = getServiceById(serviceId);
+        ServiceStatus service = getServiceById(serviceId, userId);
 
         Map<String, Object> log = new HashMap<>();
 
@@ -310,9 +311,9 @@ public class MonitoringServiceImpl implements MonitoringService {
     // ==========================================
 
     @Override
-    public Map<String, Object> getServiceUptime(String serviceId) {
+    public Map<String, Object> getServiceUptime(String serviceId, String userId) {
 
-        ServiceStatus service = getServiceById(serviceId);
+        ServiceStatus service = getServiceById(serviceId, userId);
 
         long uptime = "UP".equalsIgnoreCase(service.getStatus()) ? 100 : 0;
 
@@ -329,9 +330,9 @@ public class MonitoringServiceImpl implements MonitoringService {
 
 
     @Override
-    public KafkaMetricsResponse getKafkaMetrics() {
+    public KafkaMetricsResponse getKafkaMetrics(String userId) {
 
-        long totalServices = repository.count();
+        long totalServices = repository.findByUserId(userId).size();
 
         KafkaMetricsResponse kafkaMetrics =
                 KafkaMetricsResponse.builder()
@@ -340,8 +341,6 @@ public class MonitoringServiceImpl implements MonitoringService {
                         .consumerCount(1)
                         .throughputMbps(totalServices * 1.5)
                         .build();
-
-        messagingTemplate.convertAndSend("/topic/kafka", kafkaMetrics);
 
         return kafkaMetrics;
     }
@@ -401,7 +400,8 @@ public class MonitoringServiceImpl implements MonitoringService {
             producer.sendLog(
                     "MONITORING",
                     "INFO",
-                    "Checking service: " + s.getServiceName()
+                    "Checking service: " + s.getServiceName(),
+                    s.getUserId()
             );
 
             System.out.println("\n🔍 Checking Service:");
@@ -422,22 +422,11 @@ public class MonitoringServiceImpl implements MonitoringService {
                 producer.sendLog(
                         "MONITORING",
                         "INFO",
-                        "Service UP: " + s.getServiceName()
+                        "Service UP: " + s.getServiceName(),
+                        s.getUserId()
                 );
 
-                // 🔥 RECOVERY ALERT (DOWN → UP)
-                if ("DOWN".equalsIgnoreCase(previousStatus)) {
 
-                    AlertEvent alert = new AlertEvent(
-                            s.getServiceName(),
-                            "INFO",
-                            s.getServiceName() + " is BACK UP",
-                            "RESOLVED",
-                            LocalDateTime.now()
-                    );
-
-                    producer.sendAlert(alert);
-                }
 
                 System.out.println("✅ STATUS: UP");
                 System.out.println("⏱ Response Time: " + time + " ms");
@@ -452,22 +441,11 @@ public class MonitoringServiceImpl implements MonitoringService {
                 producer.sendLog(
                         "MONITORING",
                         "ERROR",
-                        "Service DOWN: " + s.getServiceName()
+                        "Service DOWN: " + s.getServiceName(),
+                        s.getUserId()
                 );
 
-                // 🔥 ALERT ONLY WHEN UP → DOWN
-                if (!"DOWN".equalsIgnoreCase(previousStatus)) {
 
-                    AlertEvent alert = new AlertEvent(
-                            s.getServiceName(),
-                            "CRITICAL",
-                            s.getServiceName() + " is DOWN",
-                            "ACTIVE",
-                            LocalDateTime.now()
-                    );
-
-                    producer.sendAlert(alert);
-                }
 
                 s.setStatus("DOWN");
                 s.setResponseTime(-1L);
@@ -496,11 +474,11 @@ public class MonitoringServiceImpl implements MonitoringService {
     ) {
 
         ServiceStatus service = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Service not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found"));
 
         // 🔒 Security check (VERY IMPORTANT)
         if (!service.getUserId().equals(userId)) {
-            throw new RuntimeException("Unauthorized");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found");
         }
 
         // 🔄 Update fields
@@ -518,20 +496,26 @@ public class MonitoringServiceImpl implements MonitoringService {
     public void deleteService(String id, String userId) {
 
         ServiceStatus service = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Service not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found"));
 
         // 🔒 Security check
         if (!service.getUserId().equals(userId)) {
-            throw new RuntimeException("Unauthorized");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found");
         }
 
         producer.sendLog(
                 "MONITORING",
                 "WARN",
-                "Service deleted: " + service.getServiceName()
+                "Service deleted: " + service.getServiceName(),
+                userId
         );
 
         repository.delete(service);
+    }
+
+    @Override
+    public void deleteServicesByUserId(String userId) {
+        repository.deleteByUserId(userId);
     }
 
     @Override

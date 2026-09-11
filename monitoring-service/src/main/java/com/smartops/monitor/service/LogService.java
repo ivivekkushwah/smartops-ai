@@ -5,7 +5,6 @@ import com.smartops.monitor.dto.LogStatsResponse;
 import com.smartops.monitor.model.LogDocument;
 import com.smartops.monitor.repository.LogRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -26,6 +25,7 @@ public class LogService {
 
         LogDocument log = new LogDocument();
 
+        log.setUserId(event.getUserId());
         log.setServiceName(event.getServiceName());
         log.setLevel(event.getLevel().toUpperCase());
         log.setMessage(event.getMessage());
@@ -38,21 +38,17 @@ public class LogService {
     // GET ALL LOGS (SORTED DESC)
     // ==========================================
 
-    public List<LogDocument> getAllLogs() {
-        return logRepository.findAll(
-                Sort.by(Sort.Direction.DESC, "timestamp")
-        );
+    public List<LogDocument> getAllLogs(String userId) {
+        return logRepository.findByUserIdOrderByTimestampDesc(userId);
     }
 
     // ==========================================
     // GET RECENT LOGS
     // ==========================================
 
-    public List<LogDocument> getRecentLogs(int limit) {
+    public List<LogDocument> getRecentLogs(String userId, int limit) {
 
-        return logRepository.findAll(
-                        Sort.by(Sort.Direction.DESC, "timestamp")
-                )
+        return logRepository.findByUserIdOrderByTimestampDesc(userId)
                 .stream()
                 .limit(limit)
                 .toList();
@@ -63,16 +59,14 @@ public class LogService {
     // ==========================================
 
     public List<LogDocument> getLogsByService(
+            String userId,
             String serviceName,
             int limit
     ) {
 
         return logRepository
-                .findByServiceName(serviceName)
+                .findByUserIdAndServiceNameOrderByTimestampDesc(userId, serviceName)
                 .stream()
-                .sorted((a, b) ->
-                        b.getTimestamp()
-                                .compareTo(a.getTimestamp()))
                 .limit(limit)
                 .toList();
     }
@@ -81,26 +75,25 @@ public class LogService {
     // GET LOGS BY LEVEL
     // ==========================================
 
-    public List<LogDocument> getLogsByLevel(String level) {
+    public List<LogDocument> getLogsByLevel(String userId, String level) {
 
         return logRepository
-                .findByLevel(level.toUpperCase());
+                .findByUserIdAndLevelOrderByTimestampDesc(userId, level.toUpperCase());
     }
 
     // ==========================================
     // SEARCH LOGS
     // ==========================================
 
-    public List<Object> searchLogs(
+    public List<LogDocument> searchLogs(
+            String userId,
             String query,
             int limit
     ) {
 
         return logRepository
-                .findByMessageContainingIgnoreCase(query)
+                .findByUserIdAndMessageContainingIgnoreCaseOrderByTimestampDesc(userId, query)
                 .stream()
-                .sorted(
-                )
                 .limit(limit)
                 .toList();
     }
@@ -110,12 +103,13 @@ public class LogService {
     // ==========================================
 
     public List<LogDocument> filterLogs(
+            String userId,
             String level,
             String serviceName,
             int limit
     ) {
 
-        List<LogDocument> logs = logRepository.findAll();
+        List<LogDocument> logs = logRepository.findByUserIdOrderByTimestampDesc(userId);
 
         return logs.stream()
                 .filter(log ->
@@ -135,9 +129,9 @@ public class LogService {
     // LOG STATISTICS (NO HARDCODE)
     // ==========================================
 
-    public LogStatsResponse getLogStats() {
+    public LogStatsResponse getLogStats(String userId) {
 
-        List<LogDocument> logs = logRepository.findAll();
+        List<LogDocument> logs = logRepository.findByUserIdOrderByTimestampDesc(userId);
 
         long total = logs.size();
 
@@ -196,5 +190,9 @@ public class LogService {
         if (minutes == 0) minutes = 1;
 
         return (double) logs.size() / minutes;
+    }
+
+    public void deleteLogsByUserId(String userId) {
+        logRepository.deleteByUserId(userId);
     }
 }

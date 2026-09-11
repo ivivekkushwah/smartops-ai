@@ -1,14 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useCallback } from 'react';
-import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
+import { useEffect, useState, useCallback, useRef } from "react";
+import { alertService, Alert, AlertStats } from "@/services/alert-service";
 
-import {
-  alertService,
-  Alert,
-  AlertStats,
-} from '@/services/alert-service';
+import { useAuth } from "@/lib/auth-context";
 
 export interface UseAlertsReturn {
   alerts: Alert[];
@@ -22,181 +17,247 @@ export interface UseAlertsReturn {
   isConnected: boolean;
 }
 
-export function useAlerts(
-  subscribeToUpdates = true
-): UseAlertsReturn {
+export function useAlerts(subscribeToUpdates = true): UseAlertsReturn {
+  const { user, loading: authLoading } = useAuth();
+
+  const userId = user?.id;
+
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [stats, setStats] = useState<AlertStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const mountedRef = useRef(false);
 
-  const wsUrl =
-    process.env.NEXT_PUBLIC_WS_URL ||
-    'http://localhost:8084/ws';
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // =========================================
-  // FETCH ALERTS + STATS
+  // FETCH ALERTS
   // =========================================
 
   const fetchAlerts = useCallback(async () => {
+    if (authLoading) {
+      return;
+    }
+
+    if (!userId) {
+      if (mountedRef.current) {
+        setAlerts([]);
+        setStats(null);
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
-      setLoading(true);
-      setError(null);
+      if (mountedRef.current) {
+        setLoading(true);
+        setError(null);
+      }
 
       const [alertsData, statsData] = await Promise.all([
         alertService.getAlerts(),
         alertService.getAlertStats(),
       ]);
 
-      setAlerts(alertsData);
-      setStats(statsData);
+      if (mountedRef.current) {
+        setAlerts(alertsData);
+        setStats(statsData);
+      }
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err
-          : new Error('Failed to fetch alerts')
-      );
+      if (mountedRef.current) {
+        setError(
+          err instanceof Error ? err : new Error("Failed to fetch alerts"),
+        );
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  }, []);
+  }, [authLoading, userId]);
 
   // =========================================
-  // ACTIONS
-  // =========================================
-
-  const handleAcknowledge = useCallback(
-    async (alertId: string) => {
-      try {
-        setError(null);
-        await alertService.acknowledgeAlert(alertId);
-        await fetchAlerts();
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err
-            : new Error('Failed to acknowledge alert')
-        );
-      }
-    },
-    [fetchAlerts]
-  );
-
-  const handleResolve = useCallback(
-    async (alertId: string) => {
-      try {
-        setError(null);
-        await alertService.resolveAlert(alertId);
-        await fetchAlerts();
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err
-            : new Error('Failed to resolve alert')
-        );
-      }
-    },
-    [fetchAlerts]
-  );
-
-  const handleDelete = useCallback(
-    async (alertId: string) => {
-      try {
-        setError(null);
-        await alertService.deleteAlert(alertId);
-        await fetchAlerts();
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err
-            : new Error('Failed to delete alert')
-        );
-      }
-    },
-    [fetchAlerts]
-  );
-
-  // =========================================
-  // INITIAL LOAD
+  // INITIAL FETCH
   // =========================================
 
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
     fetchAlerts();
-  }, [fetchAlerts]);
+  }, [authLoading, fetchAlerts]);
 
   // =========================================
-  // WEBSOCKET (FIXED VERSION)
+  // WEBSOCKET
   // =========================================
 
   useEffect(() => {
-    if (!subscribeToUpdates) return;
+    if (authLoading) {
+      return;
+    }
 
-    const client = new Client({
-      webSocketFactory: () => new SockJS(wsUrl),
-      reconnectDelay: 3000,
-
-      debug: (str) => console.log('[STOMP]', str),
-
-      onConnect: () => {
-        console.log('✅ Alerts Connected');
-        setIsConnected(true);
-
-        client.subscribe('/topic/alerts', (message) => {
-          try {
-            const newAlert: Alert = JSON.parse(message.body);
-
-            console.log('📩 New Alert:', newAlert);
-
-            setAlerts((prev) => {
-              const exists = prev.some(
-                (a) => a.id === newAlert.id
-              );
-
-              if (exists) {
-                return prev.map((a) =>
-                  a.id === newAlert.id ? newAlert : a
-                );
-              }
-
-              return [newAlert, ...prev];
-            });
-          } catch (err) {
-            console.error('Parse error:', err);
-          }
-        });
-
-        // OPTIONAL: delete event
-        client.subscribe('/topic/alerts/delete', (msg) => {
-          const { id } = JSON.parse(msg.body);
-          setAlerts((prev) =>
-            prev.filter((a) => a.id !== id)
-          );
-        });
-      },
-
-      onWebSocketClose: () => {
-        console.log('❌ Alerts Disconnected');
-        setIsConnected(false);
-      },
-
-      onWebSocketError: (err) => {
-        console.error('❌ WebSocket Error', err);
-        setIsConnected(false);
-      },
-
-      onStompError: (frame) => {
-        console.error('❌ STOMP Error', frame);
-      },
-    });
-
-    client.activate();
-
-    return () => {
-      client.deactivate();
+    if (!userId) {
       setIsConnected(false);
-    };
-  }, [subscribeToUpdates, wsUrl]);
+      return;
+    }
+
+    if (!subscribeToUpdates) {
+      return;
+    }
+
+    const cleanup = alertService.subscribeToAlerts(
+      userId,
+
+      // =========================
+      // NEW ALERT
+      // =========================
+
+      (newAlert) => {
+        if (!mountedRef.current) return;
+        if (newAlert.userId !== userId) return;
+
+        setAlerts((prev) => {
+          const exists = prev.some((alert) => alert.id === newAlert.id);
+
+          if (exists) {
+            return prev.map((alert) =>
+              alert.id === newAlert.id ? newAlert : alert,
+            );
+          }
+
+          return [newAlert, ...prev];
+        });
+      },
+
+      // =========================
+      // DELETE
+      // =========================
+
+      (alertId) => {
+        if (!mountedRef.current) return;
+        if (!alertId) return;
+
+        setAlerts((prev) => prev.filter((alert) => alert.id !== alertId));
+      },
+
+      // =========================
+      // ERROR
+      // =========================
+      (error) => {
+        if (!mountedRef.current) return;
+
+        console.error("Alert WebSocket error:", error);
+        setIsConnected(false);
+      },
+
+      // =========================
+      // CONNECT
+      // =========================
+
+      () => {
+        if (!mountedRef.current) return;
+
+        console.log(`✅ Alert WebSocket connected for user ${userId}`);
+
+        setIsConnected(true);
+      },
+
+      // =========================
+      // DISCONNECT
+      // =========================
+
+      () => {
+        if (!mountedRef.current) return;
+
+        console.log(`❌ Alert WebSocket disconnected for user ${userId}`);
+
+        setIsConnected(false);
+      },
+    );
+
+    return cleanup;
+  }, [authLoading, userId, subscribeToUpdates]);
+
+  // =========================================
+  // ACKNOWLEDGE
+  // =========================================
+
+  const acknowledge = useCallback(
+    async (alertId: string) => {
+      if (!userId) {
+        return;
+      }
+
+      try {
+        setError(null);
+
+        await alertService.acknowledgeAlert(alertId);
+
+        await fetchAlerts();
+      } catch (err) {
+        setError(
+          err instanceof Error ? err : new Error("Failed to acknowledge alert"),
+        );
+      }
+    },
+    [userId, fetchAlerts],
+  );
+
+  // =========================================
+  // RESOLVE
+  // =========================================
+
+  const resolve = useCallback(
+    async (alertId: string) => {
+      if (!userId) {
+        return;
+      }
+
+      try {
+        setError(null);
+
+        await alertService.resolveAlert(alertId);
+
+        await fetchAlerts();
+      } catch (err) {
+        setError(
+          err instanceof Error ? err : new Error("Failed to resolve alert"),
+        );
+      }
+    },
+    [userId, fetchAlerts],
+  );
+
+  // =========================================
+  // DELETE
+  // =========================================
+
+  const deleteAlert = useCallback(
+    async (alertId: string) => {
+      if (!userId) {
+        return;
+      }
+
+      try {
+        setError(null);
+
+        await alertService.deleteAlert(alertId);
+
+        await fetchAlerts();
+      } catch (err) {
+        setError(
+          err instanceof Error ? err : new Error("Failed to delete alert"),
+        );
+      }
+    },
+    [userId, fetchAlerts],
+  );
 
   // =========================================
   // RETURN
@@ -208,9 +269,9 @@ export function useAlerts(
     loading,
     error,
     refetch: fetchAlerts,
-    acknowledge: handleAcknowledge,
-    resolve: handleResolve,
-    delete: handleDelete,
+    acknowledge,
+    resolve,
+    delete: deleteAlert,
     isConnected,
   };
 }

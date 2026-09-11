@@ -15,7 +15,7 @@ public class InsightController {
     private final InsightService insightService;
 
     @GetMapping
-    public List<Insight> getInsights() {
-        return insightService.getInsights();
+    public List<Insight> getInsights(@RequestHeader("X-User-Id") String userId) {
+        return insightService.getInsights(userId);
     }
 }

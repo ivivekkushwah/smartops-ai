@@ -1,6 +1,6 @@
 package com.smartops.insightservice.service;
 
-import com.smartops.insightservice.dto.AlertEvent;
+import com.smartops.common.event.AlertEvent;
 import com.smartops.insightservice.model.Insight;
 import com.smartops.insightservice.repository.InsightRepository;
 import lombok.RequiredArgsConstructor;
@@ -40,58 +40,61 @@ public class InsightService {
                   "recommendation":"",
                   "confidence":0
                 }
-                """
-                .formatted(
-                        event.getServiceName(),
-                        event.getSeverity(),
-                        event.getTitle(),
-                        event.getMessage()
-                );
+                """.formatted(
+                event.getServiceName(),
+                event.getSeverity(),
+                event.getTitle(),
+                event.getMessage()
+        );
 
-        String aiResponse = geminiService.generateInsight(prompt);
+        String aiResponse;
 
-        log.info("======================================");
-        log.info("GEMINI RESPONSE:");
-        log.info(aiResponse);
-        log.info("======================================");
+        try {
+            aiResponse = geminiService.generateInsight(prompt);
+        } catch (Exception e) {
+
+            log.error("Gemini failed", e);
+
+            aiResponse = """
+        AI analysis unavailable.
+        Reason: Gemini API rate limit exceeded.
+        """;
+        }
 
         Insight insight = Insight.builder()
+                .userId(event.getUserId())
                 .serviceName(event.getServiceName())
                 .severity(event.getSeverity())
-
-                // Temporary until parsing is added
                 .summary(aiResponse)
-
                 .rootCause("Pending Parsing")
                 .impact("Pending Parsing")
                 .recommendation("Pending Parsing")
                 .confidence(0)
-
                 .createdAt(LocalDateTime.now())
                 .build();
 
         return repository.save(insight);
     }
 
-    public List<Insight> getAllInsights() {
-        return repository.findAll();
+    public List<Insight> getAllInsights(String userId) {
+        return repository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
-    public Insight getInsightById(String id) {
-        return repository.findById(id)
+    public Insight getInsightById(String id, String userId) {
+        return repository.findByIdAndUserId(id, userId)
                 .orElseThrow(() ->
                         new RuntimeException("Insight not found with id: " + id));
     }
 
-    public void deleteInsight(String id) {
-        repository.deleteById(id);
+    public void deleteInsight(String id, String userId) {
+        repository.deleteByIdAndUserId(id, userId);
     }
 
-    public void deleteAllInsights() {
-        repository.deleteAll();
+    public void deleteAllInsights(String userId) {
+        repository.deleteByUserId(userId);
     }
 
-    public long getInsightCount() {
-        return repository.count();
+    public long getInsightCount(String userId) {
+        return repository.countByUserId(userId);
     }
 }

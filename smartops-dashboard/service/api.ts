@@ -53,25 +53,6 @@ api.interceptors.response.use(
       )
     }
 
-    // redirect only on protected pages
-    if (
-      status === 401 &&
-      typeof window !== 'undefined'
-    ) {
-
-      const publicRoutes = [
-        '/login',
-        '/register'
-      ]
-
-      const isPublicRoute =
-        publicRoutes.includes(window.location.pathname)
-
-      if (!isPublicRoute) {
-        window.location.href = '/login'
-      }
-    }
-
     return Promise.reject(error)
   }
 )

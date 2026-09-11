@@ -1,7 +1,5 @@
 package com.smartops.alert.service;
 
-
-
 import com.smartops.alert.dto.AlertResponse;
 import com.smartops.alert.dto.AlertStatsResponse;
 import com.smartops.alert.dto.CreateAlertRequest;
@@ -10,6 +8,7 @@ import com.smartops.alert.model.Alert;
 import com.smartops.alert.model.AlertSeverity;
 import com.smartops.alert.model.AlertStatus;
 import com.smartops.alert.repository.AlertRepository;
+import com.smartops.common.event.AlertEvent;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -26,7 +25,9 @@ public class AlertServiceImpl implements AlertService {
     private final AlertRepository alertRepository;
 
     private final SimpMessagingTemplate messagingTemplate;
+
     private final KafkaProducerService producer;
+
 
     // ==========================================
     // CREATE ALERT
@@ -36,6 +37,7 @@ public class AlertServiceImpl implements AlertService {
     public AlertResponse createAlert(CreateAlertRequest request) {
 
         Alert alert = Alert.builder()
+                .userId(request.getUserId())
                 .serviceName(request.getServiceName())
                 .severity(request.getSeverity())
                 .title(request.getTitle())
@@ -46,152 +48,224 @@ public class AlertServiceImpl implements AlertService {
 
         Alert savedAlert = alertRepository.save(alert);
 
+
+        // ==========================================
+        // CREATE KAFKA EVENT
+        // ==========================================
+
+        AlertEvent event = new AlertEvent();
+
+        event.setUserId(savedAlert.getUserId());
+        event.setServiceName(savedAlert.getServiceName());
+        event.setSeverity(savedAlert.getSeverity().name());
+        event.setMessage(savedAlert.getMessage());
+        event.setStatus(savedAlert.getStatus().name());
+        event.setTimestamp(savedAlert.getCreatedAt());
+        event.setTitle(savedAlert.getTitle());
+
+
+        // ==========================================
         // REALTIME PUSH
+        // ==========================================
+
         messagingTemplate.convertAndSend(
-                "/topic/alerts",
+                "/topic/alerts/" + savedAlert.getUserId(),
                 mapToResponse(savedAlert)
         );
 
-        producer.sendLog(
-                "ALERT",
-                "WARN",
-                "New alert created for service: " + request.getServiceName()
-        );
+
+        producer.sendAlert(event);
 
         return mapToResponse(savedAlert);
     }
 
+
     // ==========================================
-    // GET ALL ALERTS
+    // GET ALL ALERTS FOR USER
     // ==========================================
 
     @Override
-    public List<AlertResponse> getAllAlerts() {
+    public List<AlertResponse> getAllAlerts(String userId) {
 
-        return alertRepository.findAll()
+        return alertRepository.findByUserId(userId)
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
     }
 
+
     // ==========================================
-    // GET ACTIVE ALERTS
+    // GET ACTIVE ALERTS FOR USER
     // ==========================================
 
     @Override
-    public List<AlertResponse> getActiveAlerts() {
+    public List<AlertResponse> getActiveAlerts(String userId) {
 
-        return alertRepository.findByStatus(AlertStatus.ACTIVE)
+        return alertRepository
+                .findByUserIdAndStatus(
+                        userId,
+                        AlertStatus.ACTIVE
+                )
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
     }
+
 
     // ==========================================
     // GET ALERT BY ID
     // ==========================================
 
     @Override
-    public AlertResponse getAlertById(String id) {
+    public AlertResponse getAlertById(
+            String id,
+            String userId
+    ) {
 
-        Alert alert = alertRepository.findById(id)
+        Alert alert = alertRepository
+                .findByIdAndUserId(id, userId)
                 .orElseThrow(() ->
                         new RuntimeException("Alert not found"));
 
         return mapToResponse(alert);
     }
 
+
     // ==========================================
     // RESOLVE ALERT
     // ==========================================
 
     @Override
-    public AlertResponse resolveAlert(String id) {
+    public AlertResponse resolveAlert(
+            String id,
+            String userId
+    ) {
 
-        Alert alert = alertRepository.findById(id)
+        Alert alert = alertRepository
+                .findByIdAndUserId(id, userId)
                 .orElseThrow(() ->
                         new RuntimeException("Alert not found"));
 
         alert.setStatus(AlertStatus.RESOLVED);
-        alert.setResolvedAt(LocalDateTime.now());
 
-        Alert updatedAlert = alertRepository.save(alert);
+        alert.setResolvedAt(
+                LocalDateTime.now()
+        );
+
+        Alert updatedAlert =
+                alertRepository.save(alert);
+
 
         messagingTemplate.convertAndSend(
-                "/topic/alerts",
+                "/topic/alerts/" + userId,
                 mapToResponse(updatedAlert)
-        );
-        producer.sendLog(
-                "ALERT",
-                "INFO",
-                "Alert resolved for service: " + alert.getServiceName()
         );
 
         return mapToResponse(updatedAlert);
     }
+
 
     // ==========================================
     // ACKNOWLEDGE ALERT
     // ==========================================
 
     @Override
-    public AlertResponse acknowledgeAlert(String id) {
+    public AlertResponse acknowledgeAlert(
+            String id,
+            String userId
+    ) {
 
-        Alert alert = alertRepository.findById(id)
+        Alert alert = alertRepository
+                .findByIdAndUserId(id, userId)
                 .orElseThrow(() ->
                         new RuntimeException("Alert not found"));
 
         alert.setStatus(AlertStatus.ACKNOWLEDGED);
-        alert.setAcknowledgedAt(LocalDateTime.now());
 
-        Alert updatedAlert = alertRepository.save(alert);
-
-        messagingTemplate.convertAndSend(
-                "/topic/alerts",
-                mapToResponse(updatedAlert)
+        alert.setAcknowledgedAt(
+                LocalDateTime.now()
         );
 
-        producer.sendLog(
-                "ALERT",
-                "INFO",
-                "Alert acknowledged for service: " + alert.getServiceName()
+        Alert updatedAlert =
+                alertRepository.save(alert);
+
+
+        messagingTemplate.convertAndSend(
+                "/topic/alerts/" + userId,
+                mapToResponse(updatedAlert)
         );
 
         return mapToResponse(updatedAlert);
     }
 
+
     // ==========================================
-    // GET CRITICAL ALERTS
+    // GET CRITICAL ALERTS FOR USER
     // ==========================================
 
     @Override
-    public List<AlertResponse> getCriticalAlerts() {
+    public List<AlertResponse> getCriticalAlerts(
+            String userId
+    ) {
 
         return alertRepository
-                .findBySeverity(AlertSeverity.CRITICAL)
+                .findByUserIdAndSeverity(
+                        userId,
+                        AlertSeverity.CRITICAL
+                )
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
     }
 
+
     // ==========================================
-    // ALERT STATS (NO HARDCODE)
+    // ALERT STATS FOR USER
     // ==========================================
 
     @Override
-    public AlertStatsResponse getAlertStats() {
+    public AlertStatsResponse getAlertStats(
+            String userId
+    ) {
 
-        long total = alertRepository.count();
+        long total =
+                alertRepository.countByUserId(userId);
 
-        long critical = alertRepository.countBySeverity(AlertSeverity.CRITICAL);
+        long critical =
+                alertRepository.countByUserIdAndSeverity(
+                        userId,
+                        AlertSeverity.CRITICAL
+                );
 
-        long warning = alertRepository.countBySeverity(AlertSeverity.WARNING);
+        long warning =
+                alertRepository.countByUserIdAndSeverity(
+                        userId,
+                        AlertSeverity.WARNING
+                );
 
-        long info = alertRepository.countBySeverity(AlertSeverity.INFO);
+        long info =
+                alertRepository.countByUserIdAndSeverity(
+                        userId,
+                        AlertSeverity.INFO
+                );
 
-        long resolved = alertRepository.countByStatus(AlertStatus.RESOLVED);
+        long resolved =
+                alertRepository.countByUserIdAndStatus(
+                        userId,
+                        AlertStatus.RESOLVED
+                );
 
-        long active = alertRepository.countByStatus(AlertStatus.ACTIVE);
+        long active =
+                alertRepository.countByUserIdAndStatus(
+                        userId,
+                        AlertStatus.ACTIVE
+                );
+
+        long acknowledged =
+                alertRepository.countByUserIdAndStatus(
+                        userId,
+                        AlertStatus.ACKNOWLEDGED
+                );
 
         return AlertStatsResponse.builder()
                 .total(total)
@@ -200,30 +274,46 @@ public class AlertServiceImpl implements AlertService {
                 .info(info)
                 .resolved(resolved)
                 .active(active)
+                .acknowledged(acknowledged)
                 .build();
     }
+
 
     // ==========================================
     // DELETE ALERT
     // ==========================================
 
     @Override
-    public void deleteAlert(String id) {
-        producer.sendLog(
-                "ALERT",
-                "WARN",
-                "Alert deleted with ID: " + id
-        );
+    public void deleteAlert(
+            String id,
+            String userId
+    ) {
 
-        alertRepository.deleteById(id);
+        Alert alert = alertRepository
+                .findByIdAndUserId(id, userId)
+                .orElseThrow(() ->
+                        new RuntimeException("Alert not found"));
 
-        // Send structured delete event (better than raw id)
+        alertRepository.delete(alert);
+
+
         messagingTemplate.convertAndSend(
-                "/topic/alerts/delete",
+                "/topic/alerts/delete/" + userId,
                 Map.of("id", id)
         );
-
     }
+
+
+    // ==========================================
+    // DELETE ALL ALERTS FOR USER
+    // ==========================================
+
+    @Override
+    public void deleteAlertsByUserId(String userId) {
+
+        alertRepository.deleteByUserId(userId);
+    }
+
 
     // ==========================================
     // MAPPER
@@ -233,6 +323,7 @@ public class AlertServiceImpl implements AlertService {
 
         return AlertResponse.builder()
                 .id(alert.getId())
+                .userId(alert.getUserId())
                 .serviceName(alert.getServiceName())
                 .severity(alert.getSeverity())
                 .title(alert.getTitle())
@@ -240,7 +331,7 @@ public class AlertServiceImpl implements AlertService {
                 .status(alert.getStatus())
                 .createdAt(alert.getCreatedAt())
                 .resolvedAt(alert.getResolvedAt())
-                .acknowledgedAt(alert.getAcknowledgedAt()) // FIXED
+                .acknowledgedAt(alert.getAcknowledgedAt())
                 .build();
     }
 }

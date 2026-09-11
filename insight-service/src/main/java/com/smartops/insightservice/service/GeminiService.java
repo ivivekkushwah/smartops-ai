@@ -2,12 +2,14 @@ package com.smartops.insightservice.service;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class GeminiService {
 
     private final WebClient webClient;
@@ -55,16 +57,19 @@ public class GeminiService {
                     .block();
         }
         catch (Exception e) {
+
+            log.error("Gemini API call failed", e);
+
             return """
-    {
-      "severity":"INFO",
-      "summary":"AI service unavailable",
-      "rootCause":"Gemini quota exceeded",
-      "impact":"AI analysis temporarily unavailable",
-      "recommendation":"Retry later",
-      "confidence":0
-    }
-    """;
+        {
+          "severity":"UNKNOWN",
+          "summary":"Gemini API unavailable",
+          "rootCause":"Rate limit exceeded",
+          "impact":"AI analysis could not be generated",
+          "recommendation":"Retry later",
+          "confidence":0
+        }
+        """;
         }
     }
 }

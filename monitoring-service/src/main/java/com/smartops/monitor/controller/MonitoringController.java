@@ -6,6 +6,10 @@ import com.smartops.monitor.service.MonitoringService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
 import java.util.Map;
@@ -13,6 +17,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/monitor")
 @RequiredArgsConstructor
+@Validated
 public class MonitoringController {
 
     private final MonitoringService monitoringService;
@@ -23,7 +28,7 @@ public class MonitoringController {
 
     @PostMapping("/services")
     public ServiceStatus addService(
-            @RequestBody ServiceStatusRequest request,
+            @Valid @RequestBody ServiceStatusRequest request,
             @RequestHeader("X-User-Id") String userId
     ) {
         System.out.println("🔥 ADD SERVICE API HIT");
@@ -49,17 +54,18 @@ public class MonitoringController {
 
     @GetMapping("/services/{serviceId}")
     public ServiceStatus getServiceById(
-            @PathVariable String serviceId
+            @PathVariable String serviceId,
+            @RequestHeader("X-User-Id") String userId
     ) {
         System.out.println("🔥 get by id SERVICE API HIT"); // keep this
-        return monitoringService.getServiceById(serviceId);
+        return monitoringService.getServiceById(serviceId, userId);
     }
 
     // 🔥 UPDATE SERVICE
     @PutMapping("/services/{id}")
     public ResponseEntity<ServiceStatus> updateService(
             @PathVariable String id,
-            @RequestBody ServiceStatusRequest request,
+            @Valid @RequestBody ServiceStatusRequest request,
             @RequestHeader("X-User-Id") String userId
     ) {
 
@@ -84,10 +90,11 @@ public class MonitoringController {
 
     @GetMapping("/services/{serviceId}/health")
     public ServiceStatus getServiceHealth(
-            @PathVariable String serviceId
+            @PathVariable String serviceId,
+            @RequestHeader("X-User-Id") String userId
     ) {
         System.out.println("🔥 /services/{serviceId}/health SERVICE API HIT"); // keep this
-        return monitoringService.getServiceHealth(serviceId);
+        return monitoringService.getServiceHealth(serviceId, userId);
     }
 
 
@@ -99,12 +106,13 @@ public class MonitoringController {
     @GetMapping("/services/{serviceId}/metrics")
     public List<PerformanceMetricResponse> getServiceMetrics(
             @PathVariable String serviceId,
-            @RequestParam(defaultValue = "hour") String timeRange
+            @RequestParam(defaultValue = "hour") String timeRange,
+            @RequestHeader("X-User-Id") String userId
     ) {
         System.out.println("🔥 /services/{serviceId}/metrics SERVICE API HIT");
         return monitoringService.getPerformanceMetrics(
                 serviceId,
-                timeRange
+                timeRange, userId
         );
     }
 
@@ -115,10 +123,11 @@ public class MonitoringController {
     @GetMapping("/services/{serviceId}/logs")
     public List<Map<String, Object>> getServiceLogs(
             @PathVariable String serviceId,
-            @RequestParam(defaultValue = "100") int limit
+            @RequestParam(defaultValue = "100") @Min(1) @Max(100) int limit,
+            @RequestHeader("X-User-Id") String userId
     ) {
         System.out.println("🔥 /services/{serviceId}/logs SERVICE API HIT");
-        return monitoringService.getServiceLogs(serviceId, limit);
+        return monitoringService.getServiceLogs(serviceId, limit, userId);
     }
 
     // ==========================================
@@ -127,10 +136,11 @@ public class MonitoringController {
 
     @GetMapping("/services/{serviceId}/uptime")
     public Map<String, Object> getServiceUptime(
-            @PathVariable String serviceId
+            @PathVariable String serviceId,
+            @RequestHeader("X-User-Id") String userId
     ) {
         System.out.println("🔥 /services/{serviceId}/uptime SERVICE API HIT");
-        return monitoringService.getServiceUptime(serviceId);
+        return monitoringService.getServiceUptime(serviceId, userId);
     }
 
     // ==========================================
@@ -169,18 +179,8 @@ public class MonitoringController {
     // ==========================================
 
     @GetMapping("/kafka")
-    public KafkaMetricsResponse getKafkaMetrics() {
-        return monitoringService.getKafkaMetrics();
-    }
-
-    // ==========================================
-    // MANUAL TRIGGER (DEBUG)
-    // ==========================================
-
-    @GetMapping("/check")
-    public String triggerMonitoring() {
-        monitoringService.monitorServices();
-        return "Monitoring triggered";
+    public KafkaMetricsResponse getKafkaMetrics(@RequestHeader("X-User-Id") String userId) {
+        return monitoringService.getKafkaMetrics(userId);
     }
 
     @GetMapping("/metrics/{type}")

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   serviceHealthService,
   ServiceStatus,
@@ -24,37 +24,48 @@ export function useServices(
 
   const [error, setError] =
     useState<Error | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const fetchServices = async (
     silent = false
   ) => {
     try {
-      if (!silent) {
+      if (!silent && mountedRef.current) {
         setLoading(true);
       }
 
-      setError(null);
+      if (mountedRef.current) setError(null);
 
       const data =
         await serviceHealthService.getServices();
 
-      setServices(data);
+      if (mountedRef.current) setServices(data);
 
     } catch (err) {
 
-      setError(
-        err instanceof Error
-          ? err
-          : new Error(
-              'Failed to fetch services'
-            )
-      );
+      if (mountedRef.current) {
+        setError(
+          err instanceof Error
+            ? err
+            : new Error(
+                'Failed to fetch services'
+              )
+        );
 
-      setServices([]);
+        setServices([]);
+      }
 
     } finally {
 
-      if (!silent) {
+      if (!silent && mountedRef.current) {
         setLoading(false);
       }
     }

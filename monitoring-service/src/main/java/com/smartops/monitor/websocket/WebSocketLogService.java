@@ -14,7 +14,7 @@ public class WebSocketLogService {
     public void sendLog(LogDocument log) {
 
         messagingTemplate.convertAndSend(
-                "/topic/logs",
+                "/topic/logs/" + log.getUserId(),
                 log
         );
     }

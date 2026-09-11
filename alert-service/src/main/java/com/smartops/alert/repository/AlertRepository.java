@@ -1,34 +1,44 @@
 package com.smartops.alert.repository;
 
-
-
 import com.smartops.alert.model.Alert;
 import com.smartops.alert.model.AlertSeverity;
 import com.smartops.alert.model.AlertStatus;
 import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
-@Repository
 public interface AlertRepository
         extends MongoRepository<Alert, String> {
 
-    List<Alert> findByStatus(
+    List<Alert> findByUserId(String userId);
+
+    List<Alert> findByUserIdAndStatus(
+            String userId,
             AlertStatus status
     );
 
-    List<Alert> findBySeverity(
+    List<Alert> findByUserIdAndSeverity(
+            String userId,
             AlertSeverity severity
     );
 
-    List<Alert> findByServiceName(
-            String serviceName
+    Optional<Alert> findByIdAndUserId(
+            String id,
+            String userId
     );
 
-    long countBySeverity(AlertSeverity severity);
+    long countByUserId(String userId);
 
-    long countByStatus(AlertStatus status);
+    long countByUserIdAndStatus(
+            String userId,
+            AlertStatus status
+    );
 
+    long countByUserIdAndSeverity(
+            String userId,
+            AlertSeverity severity
+    );
 
+    void deleteByUserId(String userId);
 }

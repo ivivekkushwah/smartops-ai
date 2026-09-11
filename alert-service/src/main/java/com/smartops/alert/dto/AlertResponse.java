@@ -15,6 +15,8 @@ public class AlertResponse {
 
     private String id;
 
+    private String userId;
+
     private String serviceName;
 
     private AlertSeverity severity;

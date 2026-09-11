@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { insightService } from '@/services/insight-service';
+import { useAuth } from '@/lib/auth-context';
 
 export interface Insight {
   id: string;
@@ -16,11 +17,18 @@ export interface Insight {
 }
 
 export function useInsights() {
+  const { user, loading: authLoading } = useAuth();
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user?.id) {
+      setInsights([]);
+      setLoading(false);
+      return;
+    }
     loadInsights();
 
     const unsubscribe = insightService.subscribeToInsights(
@@ -41,7 +49,7 @@ export function useInsights() {
     );
 
     return unsubscribe;
-  }, []);
+  }, [authLoading, user?.id]);
 
   const loadInsights = async () => {
     try {

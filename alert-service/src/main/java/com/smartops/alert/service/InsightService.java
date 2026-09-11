@@ -15,9 +15,9 @@ public class InsightService {
     private final AlertRepository alertRepository;
     private final InsightPublisher publisher;
 
-    public List<Insight> getInsights() {
+    public List<Insight> getInsights(String userId) {
 
-        List<Alert> alerts = alertRepository.findAll();
+        List<Alert> alerts = alertRepository.findByUserId(userId);
 
         return alerts.stream()
                 .sorted(
@@ -28,6 +28,7 @@ public class InsightService {
                 .map(alert ->
                         Insight.builder()
                                 .id(alert.getId())
+                                .userId(userId)
                                 .type(alert.getStatus().name())
                                 .severity(alert.getSeverity().name())
                                 .message(
@@ -41,12 +42,14 @@ public class InsightService {
     }
 
     public Insight generateInsight(
+            String userId,
             String message,
             String severity
     ) {
 
         Insight insight = Insight.builder()
                 .id(UUID.randomUUID().toString())
+                .userId(userId)
                 .type("ANOMALY")
                 .message(message)
                 .severity(severity)

@@ -1,5 +1,6 @@
 package com.smartops.alert.kafka;
 
+import com.smartops.common.event.AlertEvent;
 import com.smartops.common.event.LogEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -11,18 +12,13 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class KafkaProducerService {
 
-    private static final String TOPIC = "smartops-logs";
+    private static final String ALERT_TOPIC = "alerts-topic";
 
-    private final KafkaTemplate<String, LogEvent> kafkaTemplate;
 
-    public void sendLog(String service, String level, String message) {
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
-        LogEvent event = new LogEvent();
-        event.setServiceName(service);
-        event.setLevel(level);
-        event.setMessage(message);
-        event.setTimestamp(LocalDateTime.now());
-
-        kafkaTemplate.send(TOPIC, event);
+    public void sendAlert(AlertEvent event) {
+        kafkaTemplate.send(ALERT_TOPIC, event);
+        System.out.println("🚨 ALERT SENT: " + event.getMessage());
     }
 }

@@ -14,6 +14,8 @@ public interface AuthService {
     UserResponse getCurrentUser(String userId);
     UserSettingsResponse getSettings(String userId);
 
+    void deleteUser(String userId);
+
     UserSettingsResponse updateSettings(
             String userId,
             UpdateUserSettingsRequest request

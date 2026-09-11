@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { dashboardService, DashboardMetrics } from '@/services/dashboard-service';
 
 export interface UseDashboardReturn {
@@ -18,19 +18,28 @@ export function useDashboard(refetchInterval?: number): UseDashboardReturn {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const fetchMetrics = async (silent = false) => {
   try {
-    if (!silent) setLoading(true);
-    setError(null);
+    if (!silent && mountedRef.current) setLoading(true);
+    if (mountedRef.current) setError(null);
 
     const data = await dashboardService.getMetrics();
-    setMetrics(data);
+    if (mountedRef.current) setMetrics(data);
 
   } catch (err) {
-    setError(err instanceof Error ? err : new Error('Failed to fetch metrics'));
+    if (mountedRef.current) setError(err instanceof Error ? err : new Error('Failed to fetch metrics'));
   } finally {
-    if (!silent) setLoading(false);
+    if (!silent && mountedRef.current) setLoading(false);
   }
 };
 

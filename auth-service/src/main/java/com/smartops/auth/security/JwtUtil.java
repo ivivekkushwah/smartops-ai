@@ -7,7 +7,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
-import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -17,12 +17,14 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
+    @Value("${jwt.secret}")
+    private String secret;
+
     private Key signingKey;
 
     @PostConstruct
     public void init() {
-        String SECRET_KEY = "mysecretkeymysecretkeymysecretkey123456";
-        this.signingKey = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+        this.signingKey = Keys.hmacShaKeyFor(secret.getBytes());
     }
 
     // ==========================================

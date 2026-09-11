@@ -48,29 +48,29 @@ public class InsightController {
     }
 
     @GetMapping
-    public List<Insight> getAllInsights() {
-        return insightService.getAllInsights();
+    public List<Insight> getAllInsights(@RequestHeader("X-User-Id") String userId) {
+        return insightService.getAllInsights(userId);
     }
 
     @GetMapping("/{id}")
-    public Insight getInsightById(@PathVariable String id) {
-        return insightService.getInsightById(id);
+    public Insight getInsightById(@PathVariable String id, @RequestHeader("X-User-Id") String userId) {
+        return insightService.getInsightById(id, userId);
     }
 
     @DeleteMapping("/{id}")
-    public String deleteInsight(@PathVariable String id) {
-        insightService.deleteInsight(id);
+    public String deleteInsight(@PathVariable String id, @RequestHeader("X-User-Id") String userId) {
+        insightService.deleteInsight(id, userId);
         return "Insight deleted successfully";
     }
 
     @DeleteMapping
-    public String deleteAllInsights() {
-        insightService.deleteAllInsights();
+    public String deleteAllInsights(@RequestHeader("X-User-Id") String userId) {
+        insightService.deleteAllInsights(userId);
         return "All insights deleted successfully";
     }
 
     @GetMapping("/count")
-    public long getInsightCount() {
-        return insightService.getInsightCount();
+    public long getInsightCount(@RequestHeader("X-User-Id") String userId) {
+        return insightService.getInsightCount(userId);
     }
 }

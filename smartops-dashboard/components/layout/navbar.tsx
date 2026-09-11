@@ -5,7 +5,7 @@ import { Bell, Settings, Search, LogOut, User } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
-import { useAlerts } from "@/hooks/use-alerts";
+// import { useAlerts } from "@/hooks/use-alerts";
 import { useServices } from "@/hooks/use-services";
 
 export function Navbar() {
@@ -13,18 +13,18 @@ export function Navbar() {
 
   const { user, logout } = useAuth();
   const router = useRouter();
-  const { alerts } = useAlerts();
+  // const { alerts } = useAlerts();
   const { services } = useServices();
 
-  const activeAlerts =
-    alerts?.filter((alert) => alert.status === "ACTIVE").length ?? 0;
+  // const activeAlerts =
+  //   alerts?.filter((alert) => alert.status === "ACTIVE").length ?? 0;
 
   const healthyServices =
     services?.filter((service) => service.status === "UP").length ?? 0;
 
   const handleLogout = async () => {
     await logout();
-    router.push("/login");
+    router.replace("/login");
   };
 
   const getInitials = (name: string) => {
@@ -96,7 +96,7 @@ export function Navbar() {
           >
             <Bell className="w-4 h-4" style={{ color: "var(--text2)" }} />
 
-            {activeAlerts > 0 && (
+            {/* {activeAlerts > 0 && (
               <span
                 className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center text-[10px] font-semibold text-white"
                 style={{
@@ -105,7 +105,7 @@ export function Navbar() {
               >
                 {activeAlerts > 99 ? "99+" : activeAlerts}
               </span>
-            )}
+            )} */}
           </button>
 
           <button

@@ -12,6 +12,6 @@ public class InsightPublisher {
     private final SimpMessagingTemplate messagingTemplate;
 
     public void publishInsight(Insight insight) {
-        messagingTemplate.convertAndSend("/topic/insights", insight);
+        messagingTemplate.convertAndSend("/topic/insights/" + insight.getUserId(), insight);
     }
 }

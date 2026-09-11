@@ -53,7 +53,8 @@ public class AuthServiceImpl implements AuthService {
         producer.sendLog(
                 "AUTH-SERVICE",
                 "INFO",
-                "New user registered: " + user.getEmail()
+                "New user registered: " + user.getEmail(),
+                String.valueOf(user.getId())
         );
 
         return "User registered successfully";
@@ -81,7 +82,8 @@ public class AuthServiceImpl implements AuthService {
         producer.sendLog(
                 "AUTH-SERVICE",
                 "INFO",
-                "User logged in: " + user.getEmail()
+                "User logged in: " + user.getEmail(),
+                String.valueOf(user.getId())
         );
 
         return jwtUtil.generateToken(user);
@@ -158,5 +160,23 @@ public class AuthServiceImpl implements AuthService {
                 .pushNotifications(savedUser.getPushNotifications())
                 .theme(savedUser.getTheme())
                 .build();
+    }
+
+    @Override
+    public void deleteUser(String userId) {
+
+        Long id = Long.valueOf(userId);
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "User not found"
+                        )
+                );
+
+        userRepository.delete(user);
+
+        producer.sendUserDeletedEvent(userId);
     }
 }

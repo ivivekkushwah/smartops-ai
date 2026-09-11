@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
 import { Navbar } from './navbar';
 import { Sidebar } from './sidebar';
 
@@ -9,11 +10,12 @@ const PROTECTED_ROUTES = ['/dashboard', '/logs', '/services', '/alerts', '/analy
 
 export function RootLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { isAuthenticated } = useAuth();
   
   // Check if current route is a protected route (show sidebar and navbar)
   const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
 
-  if (!isProtectedRoute) {
+  if (!isProtectedRoute || !isAuthenticated) {
     // For auth pages, just show children without layout
     return <>{children}</>;
   }

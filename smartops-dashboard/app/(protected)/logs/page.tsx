@@ -13,6 +13,7 @@ import { SectionHeader } from '@/components/shared/section-header';
 import { useEffect, useState } from 'react';
 
 import { logService } from '@/services/log-service';
+import { useAuth } from '@/lib/auth-context';
 
 const logLevels = {
   INFO: {
@@ -49,6 +50,7 @@ interface LogEntry {
 }
 
 export default function LogsPage() {
+  const { user, loading: authLoading } = useAuth();
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -64,10 +66,16 @@ export default function LogsPage() {
   // =========================
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user?.id) {
+      setLogs([]);
+      setLoading(false);
+      return;
+    }
     fetchLogs();
 
     const unsubscribe =
-      logService.subscribeToLogs((newLog) => {
+      logService.subscribeToLogs(user.id, (newLog) => {
         setLogs((prev) => {
           // Ensure newLog conforms to LogEntry (provide defaults if missing)
           const entry: LogEntry = {
@@ -83,7 +91,7 @@ export default function LogsPage() {
       });
 
     return () => unsubscribe();
-  }, []);
+  }, [authLoading, user?.id]);
 
   const fetchLogs = async () => {
     try {

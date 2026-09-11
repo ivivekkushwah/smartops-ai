@@ -61,6 +61,8 @@ export function AuthProvider({
 
   useEffect(() => {
 
+    let cancelled = false
+
     const initializeAuth = async () => {
 
       try {
@@ -74,7 +76,7 @@ export function AuthProvider({
         // Skip auth check on public routes
         if (isPublicRoute) {
 
-          setLoading(false)
+          if (!cancelled) setLoading(false)
 
           return
         }
@@ -82,20 +84,24 @@ export function AuthProvider({
         const currentUser =
           await authService.getCurrentUser()
 
-        setUser(currentUser)
+        if (!cancelled) setUser(currentUser)
 
       } catch (error) {
 
         // silently fail
-        setUser(null)
+        if (!cancelled) setUser(null)
 
       } finally {
 
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
     initializeAuth()
+
+    return () => {
+      cancelled = true
+    }
 
   }, [])
 
@@ -186,8 +192,6 @@ export function AuthProvider({
 
       setUser(null)
 
-      // redirect after logout
-      window.location.href = '/login'
     }
   }
 

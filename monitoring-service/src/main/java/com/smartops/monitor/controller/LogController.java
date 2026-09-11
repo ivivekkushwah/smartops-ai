@@ -5,6 +5,10 @@ import com.smartops.monitor.model.LogDocument;
 import com.smartops.monitor.service.LogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
 
@@ -12,6 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/logs")
 @RequiredArgsConstructor
+@Validated
 public class LogController {
 
     private final LogService logService;
@@ -21,8 +26,8 @@ public class LogController {
     // ==========================================
 
     @GetMapping
-    public List<LogDocument> getAllLogs() {
-        return logService.getAllLogs();
+    public List<LogDocument> getAllLogs(@RequestHeader("X-User-Id") String userId) {
+        return logService.getAllLogs(userId);
     }
 
     // ==========================================
@@ -31,9 +36,10 @@ public class LogController {
 
     @GetMapping("/recent")
     public List<LogDocument> getRecentLogs(
-            @RequestParam(defaultValue = "100") int limit
+            @RequestHeader("X-User-Id") String userId,
+            @RequestParam(defaultValue = "100") @Min(1) @Max(100) int limit
     ) {
-        return logService.getRecentLogs(limit);
+        return logService.getRecentLogs(userId, limit);
     }
 
     // ==========================================
@@ -42,10 +48,11 @@ public class LogController {
 
     @GetMapping("/service/{serviceName}")
     public List<LogDocument> getLogsByService(
+            @RequestHeader("X-User-Id") String userId,
             @PathVariable String serviceName,
-            @RequestParam(defaultValue = "50") int limit
+            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int limit
     ) {
-        return logService.getLogsByService(serviceName, limit);
+        return logService.getLogsByService(userId, serviceName, limit);
     }
 
     // ==========================================
@@ -54,9 +61,10 @@ public class LogController {
 
     @GetMapping("/level")
     public List<LogDocument> getLogsByLevel(
-            @RequestParam String level
+            @RequestHeader("X-User-Id") String userId,
+            @RequestParam @NotBlank String level
     ) {
-        return logService.getLogsByLevel(level.toUpperCase()); // ✅ FIX
+        return logService.getLogsByLevel(userId, level);
     }
 
     // ==========================================
@@ -64,11 +72,12 @@ public class LogController {
     // ==========================================
 
     @GetMapping("/search")
-    public List<Object> searchLogs(
-            @RequestParam String query,
-            @RequestParam(defaultValue = "50") int limit
+    public List<LogDocument> searchLogs(
+            @RequestHeader("X-User-Id") String userId,
+            @RequestParam @NotBlank String query,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int limit
     ) {
-        return logService.searchLogs(query, limit); // ✅ FIX TYPE
+        return logService.searchLogs(userId, query, limit);
     }
 
     // ==========================================
@@ -76,7 +85,7 @@ public class LogController {
     // ==========================================
 
     @GetMapping("/stats")
-    public LogStatsResponse getLogStats() {
-        return logService.getLogStats();
+    public LogStatsResponse getLogStats(@RequestHeader("X-User-Id") String userId) {
+        return logService.getLogStats(userId);
     }
 }

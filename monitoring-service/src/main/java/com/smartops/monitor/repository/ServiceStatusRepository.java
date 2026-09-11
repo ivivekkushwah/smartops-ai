@@ -14,6 +14,7 @@ public interface ServiceStatusRepository
     List<ServiceStatus> findByUserId(String userId);
 
     double countById(String id);
+    void deleteByUserId(String userId);
 
     double countErrorsById(String id);
 }

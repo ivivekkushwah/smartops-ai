@@ -153,13 +153,14 @@ export const logService = {
 
 // WebSocket log stream (FIXED)
 subscribeToLogs(
+  userId: string,
   onMessage: (log: Log) => void,
   onError?: (error: Error) => void
 ): () => void {
 
   const WS_URL =
-    process.env.NEXT_PUBLIC_WS_URL ||
-    'http://localhost:8082/ws';
+    process.env.NEXT_PUBLIC_MONITORING_WS_URL ||
+    'http://localhost:8080/monitor-ws';
 
   const client = new Client({
     webSocketFactory: () =>
@@ -173,7 +174,7 @@ subscribeToLogs(
 
       const subscription =
         client.subscribe(
-          '/topic/logs',
+          `/topic/logs/${userId}`,
           (msg: IMessage) => {
             try {
               const log: Log =
