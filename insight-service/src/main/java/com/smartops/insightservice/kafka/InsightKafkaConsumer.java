@@ -25,13 +25,6 @@ public class InsightKafkaConsumer {
             return;
         }
 
-        System.out.println("================================");
-        System.out.println("SERVICE  : " + event.getServiceName());
-        System.out.println("SEVERITY : " + event.getSeverity());
-        System.out.println("TITLE    : " + event.getTitle());
-        System.out.println("MESSAGE  : " + event.getMessage());
-        System.out.println("================================");
-
         if (!"CRITICAL".equalsIgnoreCase(event.getSeverity())) {
             return;
         }

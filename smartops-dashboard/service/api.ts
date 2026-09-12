@@ -36,20 +36,22 @@ api.interceptors.response.use(
 
     const status = error.response?.status
     const url = error.config?.url
-
-    const message =
-      error.response?.data?.message ||
-      error.message ||
-      'Unknown error'
+    const safeUrl = url?.split('?')[0]
 
     const isAuthCheck =
       url?.includes('/api/auth/me')
 
-    // avoid console spam for auth check
-    if (!isAuthCheck) {
+    const isExpectedClientError =
+      status === 400 ||
+      status === 401 ||
+      status === 403 ||
+      status === 404
+
+    // Expected authentication and validation failures are surfaced by the UI.
+    if (!isAuthCheck && !isExpectedClientError) {
 
       console.error(
-        `[API ERROR] ${url} | ${status} | ${message}`
+        `[API ERROR] ${safeUrl ?? 'unknown endpoint'} | ${status ?? 'network'}`
       )
     }
 

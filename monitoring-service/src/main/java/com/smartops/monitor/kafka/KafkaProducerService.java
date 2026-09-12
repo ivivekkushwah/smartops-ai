@@ -50,9 +50,6 @@ public class KafkaProducerService {
                 event
         );
 
-        System.out.println(
-                "📨 Log sent: " + message
-        );
     }
 
 

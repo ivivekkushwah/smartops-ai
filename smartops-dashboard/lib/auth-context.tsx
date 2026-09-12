@@ -43,6 +43,7 @@ const AuthContext = createContext<
 const PUBLIC_ROUTES = [
   '/login',
   '/register',
+  '/forgot-password',
 ]
 
 export function AuthProvider({
@@ -181,13 +182,7 @@ export function AuthProvider({
 
       await authService.logout()
 
-    } catch (error) {
-
-      console.error(
-        'Logout failed:',
-        error
-      )
-
+    } catch {
     } finally {
 
       setUser(null)
@@ -217,12 +212,6 @@ export function AuthProvider({
       }
 
     } catch (error) {
-
-      console.error(
-        'Password reset failed:',
-        error
-      )
-
       throw error
     }
   }

@@ -31,8 +31,6 @@ public class MonitoringController {
             @Valid @RequestBody ServiceStatusRequest request,
             @RequestHeader("X-User-Id") String userId
     ) {
-        System.out.println("🔥 ADD SERVICE API HIT");
-        System.out.println(request.toString());
         return monitoringService.addService(request, userId);
     }
 
@@ -44,7 +42,6 @@ public class MonitoringController {
     public List<ServiceStatus> getUserServices(
             @RequestHeader("X-User-Id") String userId
     ) {
-        System.out.println("🔥 get SERVICE API HIT"); // keep this
         return monitoringService.getServicesByUser(userId);
     }
 
@@ -57,7 +54,6 @@ public class MonitoringController {
             @PathVariable String serviceId,
             @RequestHeader("X-User-Id") String userId
     ) {
-        System.out.println("🔥 get by id SERVICE API HIT"); // keep this
         return monitoringService.getServiceById(serviceId, userId);
     }
 
@@ -93,7 +89,6 @@ public class MonitoringController {
             @PathVariable String serviceId,
             @RequestHeader("X-User-Id") String userId
     ) {
-        System.out.println("🔥 /services/{serviceId}/health SERVICE API HIT"); // keep this
         return monitoringService.getServiceHealth(serviceId, userId);
     }
 
@@ -109,7 +104,6 @@ public class MonitoringController {
             @RequestParam(defaultValue = "hour") String timeRange,
             @RequestHeader("X-User-Id") String userId
     ) {
-        System.out.println("🔥 /services/{serviceId}/metrics SERVICE API HIT");
         return monitoringService.getPerformanceMetrics(
                 serviceId,
                 timeRange, userId
@@ -126,7 +120,6 @@ public class MonitoringController {
             @RequestParam(defaultValue = "100") @Min(1) @Max(100) int limit,
             @RequestHeader("X-User-Id") String userId
     ) {
-        System.out.println("🔥 /services/{serviceId}/logs SERVICE API HIT");
         return monitoringService.getServiceLogs(serviceId, limit, userId);
     }
 
@@ -139,7 +132,6 @@ public class MonitoringController {
             @PathVariable String serviceId,
             @RequestHeader("X-User-Id") String userId
     ) {
-        System.out.println("🔥 /services/{serviceId}/uptime SERVICE API HIT");
         return monitoringService.getServiceUptime(serviceId, userId);
     }
 
@@ -151,7 +143,6 @@ public class MonitoringController {
     public DashboardMetricsResponse getUserDashboard(
             @RequestHeader("X-User-Id") String userId
     ) {
-        System.out.println("🔥 /dashboard SERVICE API HIT");
         return monitoringService.getDashboardMetrics(userId);
     }
 
@@ -159,7 +150,6 @@ public class MonitoringController {
     public SystemHealthResponse getSystemHealth(
             @RequestHeader("X-User-Id") String userId
     ) {
-        System.out.println("🔥 /health SERVICE API HIT");
         return monitoringService.getSystemHealth(userId);
     }
 

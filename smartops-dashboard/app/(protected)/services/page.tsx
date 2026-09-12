@@ -34,8 +34,6 @@ export default function ServicesPage() {
 
     } catch (err: any) {
 
-      console.error(err)
-
       if (err.response?.status === 401) {
 
         router.push('/login')
@@ -76,8 +74,6 @@ export default function ServicesPage() {
       )
 
     } catch (err) {
-
-      console.error(err)
 
       alert('Failed to delete service')
     }

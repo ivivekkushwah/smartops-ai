@@ -42,7 +42,6 @@ export const logService = {
 
       return response.data
     } catch (error) {
-      console.error('Failed to fetch logs:', error)
       throw error
     }
   },
@@ -59,10 +58,6 @@ export const logService = {
 
       return response.data
     } catch (error) {
-      console.error(
-        'Failed to fetch recent logs:',
-        error
-      )
       throw error
     }
   },
@@ -82,10 +77,6 @@ export const logService = {
 
       return response.data
     } catch (error) {
-      console.error(
-        `Failed to fetch logs for ${serviceId}:`,
-        error
-      )
       throw error
     }
   },
@@ -104,10 +95,6 @@ export const logService = {
 
       return response.data
     } catch (error) {
-      console.error(
-        `Failed to fetch ${level} logs:`,
-        error
-      )
       throw error
     }
   },
@@ -127,7 +114,6 @@ export const logService = {
 
       return response.data
     } catch (error) {
-      console.error('Failed to search logs:', error)
       throw error
     }
   },
@@ -141,10 +127,6 @@ export const logService = {
 
       return response.data
     } catch (error) {
-      console.error(
-        'Failed to fetch log statistics:',
-        error
-      )
       throw error
     }
   },

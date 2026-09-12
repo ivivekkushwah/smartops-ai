@@ -36,23 +36,12 @@ public class MonitoringServiceImpl implements MonitoringService {
     @Override
     public ServiceStatus addService(ServiceStatusRequest request, String userId) {
 
-        System.out.println("🔥 INSIDE SERVICE LAYER");
-        System.out.println("UserId: " + userId);
-
         ServiceStatus entity = new ServiceStatus();
 
         entity.setUserId(userId);                     // ✅ IMPORTANT
         entity.setServiceName(request.getServiceName());
         entity.setBaseUrl(request.getBaseUrl());
-        System.out.println("Checking: " + request.getBaseUrl());
-
         ServiceStatus saved = repository.save(entity);   // 🔥 MUST
-
-        System.out.println("✅ SAVED: " + saved);
-        System.out.println("🔥 ADD SERVICE");
-        System.out.println("➡️ UserId: " + userId);
-        System.out.println("➡️ Service Name: " + request.getServiceName());
-        System.out.println("➡️ Base URL: " + request.getBaseUrl());
         producer.sendLog(
                 "MONITORING",
                 "INFO",
@@ -98,7 +87,6 @@ public class MonitoringServiceImpl implements MonitoringService {
     public DashboardMetricsResponse getDashboardMetrics(String userId) {
 
         List<ServiceStatus> services = repository.findByUserId(userId);
-        System.out.println(services);
         long total = services.size();
 
         long active = services.stream()
@@ -370,7 +358,6 @@ public class MonitoringServiceImpl implements MonitoringService {
 
         } catch (Exception e) {
 
-            System.out.println("Metric fetch failed: " + metricName);
         }
 
         return 0;
@@ -389,8 +376,6 @@ public class MonitoringServiceImpl implements MonitoringService {
 
         List<ServiceStatus> services = repository.findAll();
 
-        System.out.println("📦 Total services found: " + services.size());
-
         for (ServiceStatus s : services) {
 
             long start = System.currentTimeMillis();
@@ -404,12 +389,8 @@ public class MonitoringServiceImpl implements MonitoringService {
                     s.getUserId()
             );
 
-            System.out.println("\n🔍 Checking Service:");
-            System.out.println("➡️ Name: " + s.getServiceName());
-            System.out.println("➡️ URL: " + s.getBaseUrl());
-
             try {
-                String response = restTemplate.getForObject(
+                restTemplate.getForObject(
                         s.getBaseUrl() + "/actuator/health",
                         String.class
                 );
@@ -428,14 +409,6 @@ public class MonitoringServiceImpl implements MonitoringService {
 
 
 
-                System.out.println("✅ STATUS: UP");
-                System.out.println("⏱ Response Time: " + time + " ms");
-
-                if (response != null) {
-                    System.out.println("📨 Response (trimmed): " +
-                            response.substring(0, Math.min(50, response.length())));
-                }
-
             } catch (Exception e) {
 
                 producer.sendLog(
@@ -450,8 +423,6 @@ public class MonitoringServiceImpl implements MonitoringService {
                 s.setStatus("DOWN");
                 s.setResponseTime(-1L);
 
-                System.out.println("❌ STATUS: DOWN");
-                System.out.println("❌ ERROR: " + e.getMessage());
             }
 
             // 🔥 IMPORTANT (you deleted this)
@@ -460,10 +431,7 @@ public class MonitoringServiceImpl implements MonitoringService {
             // 🔥 IMPORTANT (you deleted this)
             repository.save(s);
 
-            System.out.println("💾 Saved status: " + s.getStatus());
         }
-
-        System.out.println("\n================ MONITORING END ==================\n");
     }
 
     @Override

@@ -111,11 +111,7 @@ export default function LogsPage() {
           serviceName: (log as any).serviceName ?? 'unknown',
         }))
       );
-    } catch (error) {
-      console.error(
-        'Failed to fetch logs:',
-        error
-      );
+    } catch {
     } finally {
       setLoading(false);
     }

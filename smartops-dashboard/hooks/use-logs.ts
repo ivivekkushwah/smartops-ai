@@ -58,11 +58,7 @@ export function useLogs() {
       );
 
       setIsConnected(true);
-    } catch (error) {
-      console.error(
-        'Failed to fetch logs:',
-        error
-      );
+    } catch {
 
       setIsConnected(false);
     }
@@ -93,12 +89,7 @@ export function useLogs() {
           setIsConnected(true);
         },
 
-        (error) => {
-          console.error(
-            'WebSocket connection failed:',
-            error
-          );
-
+        () => {
           setIsConnected(false);
         }
       );

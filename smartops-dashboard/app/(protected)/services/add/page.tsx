@@ -29,8 +29,6 @@ export default function AddServicePage() {
       });
 
     } catch (err: any) {
-      console.error(err);
-
       if (err.response?.status === 401) {
         alert('Please login first');
       } else {

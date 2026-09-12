@@ -82,8 +82,8 @@ class AuthService {
   async logout(): Promise<void> {
     try {
       await api.post('/api/auth/logout')
-    } catch (error) {
-      console.error('Logout failed:', error)
+    } catch {
+      // Logout is best effort; the client still clears its local session.
     }
   }
 

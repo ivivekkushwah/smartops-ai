@@ -19,6 +19,5 @@ public class KafkaProducerService {
 
     public void sendAlert(AlertEvent event) {
         kafkaTemplate.send(ALERT_TOPIC, event);
-        System.out.println("🚨 ALERT SENT: " + event.getMessage());
     }
 }

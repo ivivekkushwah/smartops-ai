@@ -1,8 +1,7 @@
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 export default function ProtectedLayout({
   children,
@@ -10,13 +9,14 @@ export default function ProtectedLayout({
   children: React.ReactNode;
 }) {
   const { isAuthenticated, loading } = useAuth();
-  const router = useRouter();
+  const redirectingRef = useRef(false);
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.replace('/login');
+    if (!loading && !isAuthenticated && !redirectingRef.current) {
+      redirectingRef.current = true;
+      window.location.replace('/login');
     }
-  }, [isAuthenticated, loading, router]);
+  }, [isAuthenticated, loading]);
 
   if (loading) {
     return (

@@ -1,12 +1,13 @@
 package com.smartops.gateway.security;
 
-import com.smartops.gateway.kafka.KafkaProducerService;
+import io.jsonwebtoken.JwtException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
@@ -14,13 +15,11 @@ import reactor.core.publisher.Mono;
 @Component
 public class JwtGatewayFilter implements GlobalFilter {
 
+    private static final Logger log = LoggerFactory.getLogger(JwtGatewayFilter.class);
     private final JwtUtil jwtUtil;
 
-    private final KafkaProducerService producer;
-
-    public JwtGatewayFilter(JwtUtil jwtUtil, KafkaProducerService producer) {
+    public JwtGatewayFilter(JwtUtil jwtUtil) {
         this.jwtUtil = jwtUtil;
-        this.producer = producer;
     }
 
     @Override
@@ -29,59 +28,32 @@ public class JwtGatewayFilter implements GlobalFilter {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
 
-        System.out.println("👉 Incoming Request: " + path);
-
         // OPTIONS
         if ("OPTIONS".equals(request.getMethod().name())) {
-            System.out.println("✅ OPTIONS request allowed");
             return chain.filter(exchange);
         }
 
         // Public endpoints
         if (path.equals("/api/auth/login") || path.equals("/api/auth/register")) {
-            System.out.println("✅ Public endpoint allowed: " + path);
             return chain.filter(exchange);
         }
 
         HttpCookie cookie = request.getCookies().getFirst("token");
 
-        if (cookie == null) {
-            System.out.println("❌ No token cookie found");
-        } else {
-            System.out.println("✅ Token found: " + cookie.getValue());
-        }
-
         try {
             if (cookie != null) {
                 String userId = jwtUtil.extractUserId(cookie.getValue());
-                producer.sendLog(
-                        "GATEWAY",
-                        "INFO",
-                        "User called: " + request.getMethod() + " " + request.getURI().getPath(),
-                        userId
-                );
-                System.out.println("✅ Extracted userId: " + userId);
 
                 ServerHttpRequest modifiedRequest = request.mutate()
                         .headers(headers -> headers.remove("X-User-Id"))
                         .header("X-User-Id", userId)
                         .build();
-                exchange.getResponse().beforeCommit(() -> {
-
-                    producer.sendLog(
-                            "GATEWAY",
-                            "INFO",
-                            "Response: " + exchange.getResponse().getStatusCode(),
-                            userId
-                    );
-
-                    return Mono.empty();
-                });
                 return chain.filter(exchange.mutate().request(modifiedRequest).build());
             }
+        } catch (JwtException | IllegalArgumentException e) {
+            log.warn("Rejected request with invalid or expired JWT for path {}", path);
         } catch (Exception e) {
-
-            System.out.println("❌ JWT ERROR: " + e.getMessage());
+            log.error("Unexpected JWT processing failure for path {}", path, e);
         }
         // Every route after the public login/register endpoints is authenticated.
         // Do not forward an unauthenticated request with a caller-controlled

@@ -42,8 +42,7 @@ useEffect(() => {
 const handleSave = async () => {
   try {
     await updateSettings(formData)
-  } catch (error) {
-    console.error(error)
+  } catch {
   }
 }
   const [copied, setCopied] = useState<string | null>(null);

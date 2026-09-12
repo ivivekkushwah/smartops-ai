@@ -1,6 +1,5 @@
 package com.smartops.insightservice.service;
 
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,11 +15,6 @@ public class GeminiService {
 
     @Value("${gemini.api.key}")
     private String apiKey;
-
-    @PostConstruct
-    public void test() {
-        System.out.println("Key loaded: " + (apiKey != null));
-    }
 
     public String generateInsight(String prompt) {
 

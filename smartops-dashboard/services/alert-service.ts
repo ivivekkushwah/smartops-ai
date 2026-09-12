@@ -230,8 +230,8 @@ class AlertSocket {
 
             if (alert.userId !== userId) return;
             this.listeners.forEach((listener) => listener.onAlert(alert));
-          } catch (error) {
-            console.warn("Ignoring invalid alert WebSocket payload", error);
+          } catch {
+            // Ignore malformed payloads from the stream.
           }
         }
       ),
@@ -249,8 +249,8 @@ class AlertSocket {
             if (!data?.id) return;
 
             this.listeners.forEach((listener) => listener.onDelete?.(data.id));
-          } catch (error) {
-            console.warn("Ignoring invalid alert delete WebSocket payload", error);
+          } catch {
+            // Ignore malformed payloads from the stream.
           }
         }
       )];

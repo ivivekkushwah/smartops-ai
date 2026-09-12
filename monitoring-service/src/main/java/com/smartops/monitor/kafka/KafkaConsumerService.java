@@ -29,20 +29,12 @@ public class KafkaConsumerService {
             return;
         }
 
-        // Console Output
-        System.out.println("================================");
-        System.out.println("SERVICE : " + event.getServiceName());
-        System.out.println("LEVEL   : " + event.getLevel());
-        System.out.println("MESSAGE : " + event.getMessage());
-        System.out.println("TIME    : " + event.getTimestamp());
-        System.out.println("================================");
-
         // Save into MongoDB
         LogDocument savedLog = logService.saveLog(event);
 
         // Send live log via WebSocket
         webSocketLogService.sendLog(savedLog);
 
-        log.info("Tenant log saved and broadcasted successfully");
+        log.debug("Tenant log saved and broadcasted successfully");
     }
 }

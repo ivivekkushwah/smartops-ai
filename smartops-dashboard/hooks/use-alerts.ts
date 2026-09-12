@@ -152,7 +152,6 @@ export function useAlerts(subscribeToUpdates = true): UseAlertsReturn {
       (error) => {
         if (!mountedRef.current) return;
 
-        console.error("Alert WebSocket error:", error);
         setIsConnected(false);
       },
 
@@ -163,8 +162,6 @@ export function useAlerts(subscribeToUpdates = true): UseAlertsReturn {
       () => {
         if (!mountedRef.current) return;
 
-        console.log(`✅ Alert WebSocket connected for user ${userId}`);
-
         setIsConnected(true);
       },
 
@@ -174,8 +171,6 @@ export function useAlerts(subscribeToUpdates = true): UseAlertsReturn {
 
       () => {
         if (!mountedRef.current) return;
-
-        console.log(`❌ Alert WebSocket disconnected for user ${userId}`);
 
         setIsConnected(false);
       },

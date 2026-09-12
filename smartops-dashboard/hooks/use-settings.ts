@@ -24,8 +24,7 @@ export function useSettings() {
       const data = await settingsService.getSettings()
 
       setSettings(data)
-    } catch (err) {
-      console.error('Failed to fetch settings:', err)
+    } catch {
       setError('Failed to load settings')
     } finally {
       setLoading(false)
@@ -47,7 +46,6 @@ export function useSettings() {
 
       return data
     } catch (err) {
-      console.error('Failed to update settings:', err)
       setError('Failed to save settings')
       throw err
     } finally {

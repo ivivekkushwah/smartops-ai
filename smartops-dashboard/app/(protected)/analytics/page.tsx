@@ -43,11 +43,7 @@ export default function AnalyticsPage() {
         }));
 
         setServiceData(formatted);
-      } catch (error) {
-        console.error(
-          'Failed to load analytics',
-          error
-        );
+      } catch {
       } finally {
         setLoading(false);
       }
